@@ -36,7 +36,7 @@ frappe.ui.form.on("Invoice Form Item", {
     }
 });
 
-frappe.ui.form.on("Commission", {
+frappe.ui.form.on("Invoice Form Commission", {
     commission: function (frm, cdt, cdn) {
         calculate_total_commission_line(frm);
     },
@@ -46,7 +46,7 @@ frappe.ui.form.on("Commission", {
 });
 
 
-frappe.ui.form.on("Pamper Commission", {
+frappe.ui.form.on("Invoice Form Pamper Commission", {
     price: function (frm, cdt, cdn) {
         calculate_commission(frm);
     },

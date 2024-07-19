@@ -59,7 +59,7 @@
  "modified": "2024-07-18 20:51:34.811820",
  "modified_by": "Administrator",
  "module": "Agricultural Marketing",
- "name": "Commission",
+ "name": "Invoice Form Commission",
  "owner": "Administrator",
  "permissions": [],
  "sort_field": "modified",

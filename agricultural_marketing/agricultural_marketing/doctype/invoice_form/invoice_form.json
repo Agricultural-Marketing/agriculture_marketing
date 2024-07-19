@@ -151,7 +151,7 @@
    "fieldname": "pamper_commissions",
    "fieldtype": "Table",
    "label": "Pamper commissions",
-   "options": "Pamper Commission"
+   "options": "Invoice Form Pamper Commission"
   },
   {
    "fieldname": "commissions_section",
@@ -162,13 +162,13 @@
    "fieldname": "commissions",
    "fieldtype": "Table",
    "label": "Commissions",
-   "options": "Commission"
+   "options": "Invoice Form Commission"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2024-07-18 20:59:12.283412",
+ "modified": "2024-07-19 03:01:21.601925",
  "modified_by": "Administrator",
  "module": "Agricultural Marketing",
  "name": "Invoice Form",

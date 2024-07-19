@@ -5,5 +5,5 @@
 from frappe.model.document import Document
 
 
-class PamperCommission(Document):
+class InvoiceFormCommission(Document):
 	pass
