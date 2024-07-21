@@ -8,6 +8,7 @@
  "field_order": [
   "section_break_zpo6",
   "naming_series",
+  "company",
   "column_break_rame",
   "posting_date",
   "posting_time",
@@ -175,12 +176,18 @@
    "fieldtype": "Currency",
    "label": "Grand Total",
    "options": "currency"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2024-07-21 22:53:30.589731",
+ "modified": "2024-07-21 23:50:19.167230",
  "modified_by": "Administrator",
  "module": "Agricultural Marketing",
  "name": "Invoice Form",
