@@ -27,7 +27,9 @@
   "commissions_section",
   "commissions",
   "pampers_commissions_section",
-  "pamper_commissions"
+  "pamper_commissions",
+  "section_break_cwcc",
+  "grand_total"
  ],
  "fields": [
   {
@@ -163,12 +165,22 @@
    "fieldtype": "Table",
    "label": "Commissions",
    "options": "Invoice Form Commission"
+  },
+  {
+   "fieldname": "section_break_cwcc",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "grand_total",
+   "fieldtype": "Currency",
+   "label": "Grand Total",
+   "options": "currency"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2024-07-19 03:01:21.601925",
+ "modified": "2024-07-21 22:53:30.589731",
  "modified_by": "Administrator",
  "module": "Agricultural Marketing",
  "name": "Invoice Form",
