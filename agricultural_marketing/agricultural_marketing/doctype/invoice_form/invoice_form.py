@@ -2,8 +2,10 @@
 # For license information, please see license.txt
 import frappe
 from frappe import _
-# import frappe
 from frappe.model.document import Document
+from erpnext.accounts.general_ledger import validate_accounting_period, make_entry
+from frappe.utils import now
+import copy
 
 
 class InvoiceForm(Document):
@@ -12,6 +14,9 @@ class InvoiceForm(Document):
 
     def on_submit(self):
         self.make_gl_entries()
+
+    def on_cancel(self):
+        self.make_gl_entries_on_cancel()
 
     def update_grand_total(self):
         self.grand_total = 0
@@ -72,3 +77,50 @@ class InvoiceForm(Document):
                 "debit_in_transaction_currency": it.total,
                 "transaction_exchange_rate": 1
             })
+
+    def make_gl_entries_on_cancel(self):
+        gl_entry = frappe.qb.DocType("GL Entry")
+        gl_entries = (
+            frappe.qb.from_(gl_entry)
+            .select("*")
+            .where(gl_entry.voucher_type == self.doctype)
+            .where(gl_entry.voucher_no == self.name)
+            .where(gl_entry.is_cancelled == 0)
+            .for_update()
+        ).run(as_dict=1)
+        if gl_entries:
+            self.flags.ignore_links = True
+            validate_accounting_period(gl_entries)
+            set_as_cancel(self.doctype, self.name)
+
+            for entry in gl_entries:
+                new_gle = copy.deepcopy(entry)
+                new_gle["name"] = None
+                debit = new_gle.get("debit", 0)
+                credit = new_gle.get("credit", 0)
+
+                debit_in_account_currency = new_gle.get("debit_in_account_currency", 0)
+                credit_in_account_currency = new_gle.get("credit_in_account_currency", 0)
+
+                new_gle["debit"] = credit
+                new_gle["credit"] = debit
+                new_gle["debit_in_account_currency"] = credit_in_account_currency
+                new_gle["credit_in_account_currency"] = debit_in_account_currency
+
+                new_gle["remarks"] = "On cancellation of " + new_gle["voucher_no"]
+                new_gle["is_cancelled"] = 1
+
+                if new_gle["debit"] or new_gle["credit"]:
+                    make_entry(new_gle, False, "Yes")
+
+
+def set_as_cancel(voucher_type, voucher_no):
+    """
+    Set is_cancelled=1 in all original gl entries for the voucher
+    """
+    frappe.db.sql(
+        """UPDATE `tabGL Entry` SET is_cancelled = 1,
+        modified=%s, modified_by=%s
+        where voucher_type=%s and voucher_no=%s and is_cancelled = 0""",
+        (now(), frappe.session.user, voucher_type, voucher_no),
+    )
