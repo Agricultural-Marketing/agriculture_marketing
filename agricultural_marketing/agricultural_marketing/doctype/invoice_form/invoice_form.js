@@ -3,31 +3,18 @@
 
 frappe.ui.form.on("Invoice Form", {
  	refresh(frm) {
-        frm.fields_dict['items'].grid.get_field("customer").get_query = function() {
-            return {
-                filters: {
-                    name: ["in", [frm.doc.customer, frm.doc.pamper]]
-                }
-            }
-        };
-        frm.fields_dict['items'].grid.get_field("pamper").get_query = function() {
-            return {
-                filters: {
-                    name: ["in", [frm.doc.pamper]]
-                }
-            }
-        };
-        frm.fields_dict['pamper_commissions'].grid.get_field("pamper").get_query = function() {
-            return {
-                filters: {
-                    name: ["in", [frm.doc.pamper]]
-                }
-            }
-        }
+     	filter_basic_info_fields(frm);
+     	filter_child_tables_fields(frm);
+
  	}
 });
 
 frappe.ui.form.on("Invoice Form Item", {
+    items_add: function (frm, cdt, dcn) {
+        let row = frm.selected_doc;
+        row.pamper = frm.doc.pamper;
+        frm.refresh_field('items');
+    },
     qty: function (frm, cdt, cdn) {
         calculate_total_line(frm);
     },
@@ -54,6 +41,57 @@ frappe.ui.form.on("Invoice Form Pamper Commission", {
         calculate_commission(frm);
     }
 });
+
+
+function filter_basic_info_fields(frm) {
+    frm.set_query("supplier", function () {
+			return {
+				filters: {
+					is_farmer: 1,
+				},
+			};
+		});
+
+    frm.set_query("customer", function () {
+        return {
+            filters: {
+                is_customer: 1,
+            },
+        };
+    });
+
+    frm.set_query("pamper", function () {
+        return {
+            filters: {
+                is_pamper: 1,
+            },
+        };
+    });
+}
+
+function filter_child_tables_fields(frm) {
+    frm.fields_dict['items'].grid.get_field("customer").get_query = function() {
+            return {
+                filters: {
+                    name: ["in", [frm.doc.customer, frm.doc.pamper]]
+                }
+            }
+        };
+    frm.fields_dict['items'].grid.get_field("pamper").get_query = function() {
+        return {
+            filters: {
+                name: ["in", [frm.doc.pamper]]
+            }
+        }
+    };
+    frm.fields_dict['pamper_commissions'].grid.get_field("pamper").get_query = function() {
+        return {
+            filters: {
+                name: ["in", [frm.doc.pamper]]
+            }
+        }
+    }
+}
 
 function calculate_total_line(frm) {
     let row = frm.selected_doc;

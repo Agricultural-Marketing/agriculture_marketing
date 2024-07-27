@@ -4,6 +4,7 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 from erpnext.accounts.general_ledger import validate_accounting_period, make_entry
+from erpnext.accounts.party import get_party_account
 from frappe.utils import now
 import copy
 
@@ -45,8 +46,8 @@ class InvoiceForm(Document):
         gl_entries.append({
             "posting_date": self.posting_date,
             "due_date": self.posting_date,
-            "account": company_defaults.default_income_account,
-            "party_type": "Supplier",
+            "account": get_party_account("Customer", self.supplier, self.company),
+            "party_type": "Customer",
             "party": self.supplier,
             "credit": self.grand_total,
             "account_currency": company_defaults.default_currency,

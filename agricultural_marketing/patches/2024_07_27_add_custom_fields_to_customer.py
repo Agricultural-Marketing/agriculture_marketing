@@ -1,0 +1,33 @@
+from frappe import _
+from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
+
+
+def execute():
+    create_custom_fields({
+        "Customer": [
+            {
+                "label": _("Is Farmer"),
+                "fieldname": "is_farmer",
+                "fieldtype": "Check",
+                "default": "0",
+                "insert_after": "customer_group",
+                "depends_on": "eval:doc.is_customer==0 && doc.is_pamper==0"
+            },
+            {
+                "label": _("Is Customer"),
+                "fieldname": "is_customer",
+                "fieldtype": "Check",
+                "default": "0",
+                "insert_after": "is_farmer",
+                "depends_on": "eval:doc.is_farmer!=1"
+            },
+            {
+                "label": _("Is Pamper"),
+                "fieldname": "is_pamper",
+                "fieldtype": "Check",
+                "default": "0",
+                "insert_after": "is_customer",
+                "depends_on": "eval:doc.is_farmer!=1"
+            }
+        ]
+    })
