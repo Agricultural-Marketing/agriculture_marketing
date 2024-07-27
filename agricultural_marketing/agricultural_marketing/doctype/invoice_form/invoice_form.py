@@ -12,12 +12,21 @@ import copy
 class InvoiceForm(Document):
     def on_update(self):
         self.update_grand_total()
+        self.update_commission_and_taxes()
+        self.calculate_total_line_commission()
 
     def on_submit(self):
         self.make_gl_entries()
 
     def on_cancel(self):
         self.make_gl_entries_on_cancel()
+
+    def on_trash(self):
+        # delete gl entries on deletion of transaction
+        if frappe.db.get_single_value("Accounts Settings", "delete_linked_ledger_entries"):
+            frappe.db.sql(
+                "delete from `tabGL Entry` where voucher_type=%s and voucher_no=%s", (self.doctype, self.name)
+            )
 
     def update_grand_total(self):
         self.grand_total = 0
@@ -114,6 +123,29 @@ class InvoiceForm(Document):
                 if new_gle["debit"] or new_gle["credit"]:
                     make_entry(new_gle, False, "Yes")
 
+    def update_commission_and_taxes(self):
+        commission_percentage = get_party_commission_percentage("Customer", self.supplier)
+        default_tax = frappe.get_single("Commission Settings").get("default_tax", 0)
+        if self.commissions:
+            for it in self.commissions:
+                it.price = self.grand_total
+                it.commission = commission_percentage
+                if not it.taxes:
+                    it.taxes = default_tax
+
+    def calculate_total_line_commission(self):
+        if self.commissions:
+            for it in self.commissions:
+                it.price = self.grand_total
+                price_after_commission = (self.grand_total * it.commission) / 100
+                if it.taxes:
+                    commission_total_with_taxes = (
+                            price_after_commission + ((price_after_commission * it.taxes) / 100)
+                    )
+                    it.commission_total = commission_total_with_taxes
+                else:
+                    it.commission_total = price_after_commission
+
 
 def set_as_cancel(voucher_type, voucher_no):
     """
@@ -125,3 +157,27 @@ def set_as_cancel(voucher_type, voucher_no):
         where voucher_type=%s and voucher_no=%s and is_cancelled = 0""",
         (now(), frappe.session.user, voucher_type, voucher_no),
     )
+
+
+def get_party_commission_percentage(party_type, party):
+    """
+    Returns the commission percentage for the given `party`.
+    Will first search in party (Customer / Supplier) record, if not found,
+    will search in group (Customer Group / Supplier Group),
+    finally will return default."""
+
+    # Get the percentage from the party doc
+    commission_percentage = frappe.db.get_value(party_type, party, "commission_percentage")
+    if commission_percentage:
+        return commission_percentage
+
+    # Get the percentage from the party group doc
+    party_group_doctype = "Customer Group" if party_type == "Customer" else "Supplier Group"
+    group_field_name = "customer_group" if party_type == "Customer" else "supplier_group"
+    party_group = frappe.db.get_value(party_type, party,group_field_name)
+    commission_percentage = frappe.db.get_value(party_group_doctype, party_group, "commission_percentage")
+    if commission_percentage:
+        return commission_percentage
+
+    # Get the percentage from the commission settings single doc
+    return frappe.get_single("Commission Settings").get("customer_commission_percentage", 0)

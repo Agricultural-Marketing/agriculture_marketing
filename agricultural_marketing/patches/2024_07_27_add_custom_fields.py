@@ -28,6 +28,21 @@ def execute():
                 "default": "0",
                 "insert_after": "is_customer",
                 "depends_on": "eval:doc.is_farmer!=1"
+            },
+            {
+                "label": _("Commission Percentage"),
+                "fieldname": "commission_percentage",
+                "fieldtype": "Percent",
+                "insert_after": "account_manager",
+                "depends_on": "eval:doc.is_farmer==1"
+            }
+        ],
+        "Customer Group": [
+            {
+                "label": _("Commission Percentage"),
+                "fieldname": "commission_percentage",
+                "fieldtype": "Percent",
+                "insert_after": "is_group"
             }
         ]
     })
