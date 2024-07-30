@@ -12,9 +12,10 @@
   "item_name",
   "section_break_oxgx",
   "qty",
-  "column_break_ehhp",
   "price",
+  "column_break_ehhp",
   "total",
+  "commission",
   "section_break_horw",
   "customer",
   "column_break_dugc",
@@ -36,11 +37,9 @@
   },
   {
    "bold": 1,
-   "columns": 1,
    "fetch_from": "item_code.item_name",
    "fieldname": "item_name",
    "fieldtype": "Data",
-   "in_list_view": 1,
    "label": "Item Name",
    "reqd": 1
   },
@@ -99,12 +98,20 @@
    "in_list_view": 1,
    "label": "Pamper",
    "options": "Customer"
+  },
+  {
+   "columns": 1,
+   "fieldname": "commission",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Commission",
+   "options": "currency"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2024-07-18 18:46:56.536312",
+ "modified": "2024-07-30 19:51:21.516095",
  "modified_by": "Administrator",
  "module": "Agricultural Marketing",
  "name": "Invoice Form Item",

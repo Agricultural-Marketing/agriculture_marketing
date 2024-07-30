@@ -44,5 +44,15 @@ def execute():
                 "fieldtype": "Percent",
                 "insert_after": "is_group"
             }
+        ],
+        "Item": [
+            {
+                "label": _("Commission Item"),
+                "fieldname": "commission_item",
+                "fieldtype": "Check",
+                "default": 0,
+                "allow_in_quick_entry": 1,
+                "insert_after": "stock_uom"
+            }
         ]
     })

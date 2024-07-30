@@ -13,6 +13,7 @@ frappe.ui.form.on("Invoice Form Item", {
     items_add: function (frm, cdt, dcn) {
         let row = frm.selected_doc;
         row.pamper = frm.doc.pamper;
+        row.customer = frm.doc.customer;
         frm.refresh_field('items');
     },
     qty: function (frm, cdt, cdn) {
@@ -81,6 +82,20 @@ function filter_child_tables_fields(frm) {
         return {
             filters: {
                 name: ["in", [frm.doc.pamper]]
+            }
+        }
+    };
+    frm.fields_dict['items'].grid.get_field("item_code").get_query = function() {
+        return {
+            filters: {
+                commission_item: 0
+            }
+        }
+    };
+    frm.fields_dict['commissions'].grid.get_field("item").get_query = function() {
+        return {
+            filters: {
+                commission_item: 1
             }
         }
     };

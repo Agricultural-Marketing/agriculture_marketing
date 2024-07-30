@@ -10,10 +10,10 @@ import copy
 
 
 class InvoiceForm(Document):
-    def on_update(self):
+    def validate(self):
         self.update_grand_total()
         self.update_commission_and_taxes()
-        self.calculate_total_line_commission()
+        self.calculate_item_line_commission()
 
     def on_submit(self):
         self.make_gl_entries()
@@ -130,13 +130,6 @@ class InvoiceForm(Document):
             for it in self.commissions:
                 it.price = self.grand_total
                 it.commission = commission_percentage
-                if not it.taxes:
-                    it.taxes = default_tax
-
-    def calculate_total_line_commission(self):
-        if self.commissions:
-            for it in self.commissions:
-                it.price = self.grand_total
                 price_after_commission = (self.grand_total * it.commission) / 100
                 if it.taxes:
                     commission_total_with_taxes = (
@@ -144,7 +137,15 @@ class InvoiceForm(Document):
                     )
                     it.commission_total = commission_total_with_taxes
                 else:
+                    it.taxes = default_tax
                     it.commission_total = price_after_commission
+
+    def calculate_item_line_commission(self):
+        commission_percentage = get_party_commission_percentage("Customer", self.supplier)
+        if self.commissions:
+            for item in self.items:
+                item.commission = (item.total * commission_percentage) / 100
+
 
 
 def set_as_cancel(voucher_type, voucher_no):
