@@ -130,15 +130,12 @@ class InvoiceForm(Document):
             for it in self.commissions:
                 it.price = self.grand_total
                 it.commission = commission_percentage
+                it.taxes = it.taxes if it.taxes else default_tax
                 price_after_commission = (self.grand_total * it.commission) / 100
-                if it.taxes:
-                    commission_total_with_taxes = (
-                            price_after_commission + ((price_after_commission * it.taxes) / 100)
-                    )
-                    it.commission_total = commission_total_with_taxes
-                else:
-                    it.taxes = default_tax
-                    it.commission_total = price_after_commission
+                commission_total_with_taxes = (
+                        price_after_commission + ((price_after_commission * it.taxes) / 100)
+                )
+                it.commission_total = commission_total_with_taxes
 
     def calculate_item_line_commission(self):
         commission_percentage = get_party_commission_percentage("Customer", self.supplier)

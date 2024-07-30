@@ -30,7 +30,6 @@
   },
   {
    "columns": 1,
-   "default": "0",
    "fieldname": "taxes",
    "fieldtype": "Percent",
    "in_list_view": 1,
@@ -56,7 +55,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2024-07-30 20:03:54.339200",
+ "modified": "2024-07-31 02:17:11.518632",
  "modified_by": "Administrator",
  "module": "Agricultural Marketing",
  "name": "Invoice Form Commission",
