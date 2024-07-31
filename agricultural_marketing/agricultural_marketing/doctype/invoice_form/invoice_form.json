@@ -143,7 +143,8 @@
    "fieldname": "items",
    "fieldtype": "Table",
    "label": "Items",
-   "options": "Invoice Form Item"
+   "options": "Invoice Form Item",
+   "reqd": 1
   },
   {
    "fieldname": "pampers_commissions_section",
@@ -175,7 +176,8 @@
    "fieldname": "grand_total",
    "fieldtype": "Currency",
    "label": "Grand Total",
-   "options": "currency"
+   "options": "currency",
+   "read_only": 1
   },
   {
    "fieldname": "company",
@@ -187,7 +189,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2024-07-30 19:53:33.201068",
+ "modified": "2024-07-31 11:48:42.995930",
  "modified_by": "Administrator",
  "module": "Agricultural Marketing",
  "name": "Invoice Form",

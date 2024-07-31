@@ -13,7 +13,6 @@ class InvoiceForm(Document):
     def validate(self):
         self.update_grand_total()
         self.update_commission_and_taxes()
-        self.calculate_item_line_commission()
 
     def on_submit(self):
         self.make_gl_entries()
@@ -32,6 +31,26 @@ class InvoiceForm(Document):
         self.grand_total = 0
         for item in self.items:
             self.grand_total += item.total
+
+    def update_commission_and_taxes(self):
+        commission_item = frappe.get_value("Item", {"commission_item": 1}, "name") or None
+        if commission_item:
+            self.set("commissions", [])
+            commission_percentage = get_party_commission_percentage("Customer", self.supplier)
+            default_tax = frappe.get_single("Commission Settings").get("default_tax", 0)
+            price_after_commission = (self.grand_total * commission_percentage) / 100
+            commission_total_with_taxes = (
+                    price_after_commission + ((price_after_commission * default_tax) / 100)
+            )
+            self.append("commissions", {
+                "item": commission_item,
+                "price": self.grand_total,
+                "commission": commission_percentage,
+                "taxes": default_tax,
+                "commission_total": commission_total_with_taxes
+            })
+            for item in self.items:
+                item.commission = (item.total * commission_percentage) / 100
 
     def make_gl_entries(self):
         gl_entries = []
@@ -122,27 +141,6 @@ class InvoiceForm(Document):
 
                 if new_gle["debit"] or new_gle["credit"]:
                     make_entry(new_gle, False, "Yes")
-
-    def update_commission_and_taxes(self):
-        commission_percentage = get_party_commission_percentage("Customer", self.supplier)
-        default_tax = frappe.get_single("Commission Settings").get("default_tax", 0)
-        if self.commissions:
-            for it in self.commissions:
-                it.price = self.grand_total
-                it.commission = commission_percentage
-                it.taxes = it.taxes if it.taxes else default_tax
-                price_after_commission = (self.grand_total * it.commission) / 100
-                commission_total_with_taxes = (
-                        price_after_commission + ((price_after_commission * it.taxes) / 100)
-                )
-                it.commission_total = commission_total_with_taxes
-
-    def calculate_item_line_commission(self):
-        commission_percentage = get_party_commission_percentage("Customer", self.supplier)
-        if self.commissions:
-            for item in self.items:
-                item.commission = (item.total * commission_percentage) / 100
-
 
 
 def set_as_cancel(voucher_type, voucher_no):
