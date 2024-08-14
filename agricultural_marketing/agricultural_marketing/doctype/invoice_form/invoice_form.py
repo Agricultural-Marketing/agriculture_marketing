@@ -16,16 +16,23 @@ class InvoiceForm(Document):
 
     def on_submit(self):
         self.make_gl_entries()
+        if frappe.db.get_single_value("Agriculture Settings",
+                                      "generate_commission_invoices_automatically"):
+            self.generate_commission_invoice()
 
     def on_cancel(self):
+        self.cancel_commission_invoice()
         self.make_gl_entries_on_cancel()
 
     def on_trash(self):
         # delete gl entries on deletion of transaction
         if frappe.db.get_single_value("Accounts Settings", "delete_linked_ledger_entries"):
-            frappe.db.sql(
-                "delete from `tabGL Entry` where voucher_type=%s and voucher_no=%s", (self.doctype, self.name)
-            )
+            gles = frappe.get_all("GL Entry",
+                                  {"voucher_type": self.doctype, "voucher_no": self.name}, pluck="name")
+            for gle in gles:
+                frappe.delete_doc("GL Entry", gle, for_reload=True)
+        # delete commission invoice on deletion of transaction
+        self.delete_commission_invoice()
 
     def update_grand_total(self):
         self.grand_total = 0
@@ -37,7 +44,7 @@ class InvoiceForm(Document):
         if commission_item:
             self.set("commissions", [])
             commission_percentage = get_party_commission_percentage("Customer", self.supplier)
-            default_tax = frappe.get_single("Commission Settings").get("default_tax", 0)
+            default_tax = frappe.get_single("Agriculture Settings").get("default_tax", 0)
             price_after_commission = (self.grand_total * commission_percentage) / 100
             commission_total_with_taxes = (
                     price_after_commission + ((price_after_commission * default_tax) / 100)
@@ -71,10 +78,11 @@ class InvoiceForm(Document):
             gle.submit()
 
     def make_supplier_gl_entry(self, gl_entries, company_defaults):
+        supplier_related_customer = frappe.db.get_value("Supplier", self.supplier, "related_customer")
         gl_entries.append({
             "posting_date": self.posting_date,
             "due_date": self.posting_date,
-            "account": get_party_account("Customer", self.supplier, self.company),
+            "account": get_party_account("Customer", supplier_related_customer, self.company),
             "party_type": "Customer",
             "party": self.supplier,
             "credit": self.grand_total,
@@ -142,6 +150,50 @@ class InvoiceForm(Document):
                 if new_gle["debit"] or new_gle["credit"]:
                     make_entry(new_gle, False, "Yes")
 
+    def generate_commission_invoice(self):
+        if len(self.commissions) == 0:
+            return
+
+        # check supplier's related customer
+        supplier_related_customer = frappe.db.get_value("Supplier", self.supplier, "related_customer")
+        if not supplier_related_customer:
+            frappe.throw(_("Supplier is not linked to a customer"))
+
+        # Get commission item
+        commission_item = frappe.db.get_value("Item", {"commission_item": 1}, "name")
+
+        # Calculate total commission amount
+        total_commission = 0
+        for it in self.commissions:
+            total_commission += (it.price * it.commission) / 100
+
+        # Generate the commission sales invoice
+        pos_profile = frappe.get_doc("POS Profile", {"company": self.company})
+
+        commission_invoice = create_commission_invoice(supplier_related_customer, pos_profile,
+                                                       commission_item, total_commission)
+        self.db_set("commission_invoice_reference", commission_invoice.name)
+
+    def cancel_commission_invoice(self):
+        if self.commission_invoice_reference:
+            commission_invoice = frappe.get_doc("Sales Invoice", self.commission_invoice_reference)
+            if commission_invoice.docstatus == 0:
+                frappe.delete_doc("Sales Invoice", self.commission_invoice_reference, for_reload=True)
+                self.db_set("commission_invoice_reference", "")
+            if commission_invoice.docstatus == 1:
+                commission_invoice.cancel()
+
+    def delete_commission_invoice(self):
+        if self.commission_invoice_reference:
+            commission_invoice = frappe.get_doc("Sales Invoice", self.commission_invoice_reference)
+            if commission_invoice.docstatus == 2:
+                frappe.delete_doc("Sales Invoice", self.commission_invoice_reference, for_reload=True)
+            else:
+                if commission_invoice.docstatus == 0:
+                    frappe.delete_doc("Sales Invoice", self.commission_invoice_reference, for_reload=True)
+                if commission_invoice.docstatus == 1:
+                    commission_invoice.cancel()
+
 
 def set_as_cancel(voucher_type, voucher_no):
     """
@@ -175,5 +227,29 @@ def get_party_commission_percentage(party_type, party):
     if commission_percentage:
         return commission_percentage
 
-    # Get the percentage from the commission settings single doc
-    return frappe.get_single("Commission Settings").get("customer_commission_percentage", 0)
+    # Get the percentage from the Agriculture Settings single doc
+    return frappe.get_single("Agriculture Settings").get("customer_commission_percentage", 0)
+
+
+def create_commission_invoice(supplier_related_customer, pos_profile, commission_item, total_commission):
+    commission_invoice = frappe.new_doc("Sales Invoice")
+    commission_invoice.update({
+        "customer": supplier_related_customer,
+        "is_pos": 1,
+        "pos_profile": pos_profile.get("name")
+    })
+    commission_invoice.append("items", {
+        "item_code": commission_item,
+        "qty": 1,
+        "rate": total_commission
+    })
+    for mop in pos_profile.get("payments", []):
+        if mop.default:
+            default_mop = mop.mode_of_payment
+
+    commission_invoice.append("payments", {
+        "mode_of_payment": default_mop,
+        "amount": total_commission
+    })
+    commission_invoice.save()
+    return commission_invoice

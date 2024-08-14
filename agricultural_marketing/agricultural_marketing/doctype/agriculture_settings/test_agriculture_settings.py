@@ -5,5 +5,5 @@
 from frappe.tests.utils import FrappeTestCase
 
 
-class TestCommissionSettings(FrappeTestCase):
+class TestAgricultureSettings(FrappeTestCase):
 	pass

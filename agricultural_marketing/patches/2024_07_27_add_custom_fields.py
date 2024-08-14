@@ -4,6 +4,28 @@ from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 
 def execute():
     create_custom_fields({
+        "Supplier": [
+            {
+                "label": _("Related Customer"),
+                "fieldname": "related_customer",
+                "fieldtype": "Link",
+                "options": "Customer",
+                "insert_after": "country"
+            },
+            {
+                "label": _("Related Customer Group"),
+                "fieldname": "related_customer_group",
+                "fieldtype": "Link",
+                "options": "Customer Group",
+                "insert_after": "related_customer",
+            },
+            {
+                "label": _("Commission Percentage"),
+                "fieldname": "commission_percentage",
+                "fieldtype": "Percent",
+                "insert_after": "is_transporter"
+            }
+        ],
         "Customer": [
             {
                 "label": _("Is Farmer"),

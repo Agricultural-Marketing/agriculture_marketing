@@ -6,6 +6,7 @@
  "engine": "InnoDB",
  "field_order": [
   "calculating_ninvoiced_commissions",
+  "generate_commission_invoices_automatically",
   "customer_commission_percentage",
   "default_tax"
  ],
@@ -27,15 +28,21 @@
    "fieldname": "default_tax",
    "fieldtype": "Percent",
    "label": "Default Tax"
+  },
+  {
+   "default": "0",
+   "fieldname": "generate_commission_invoices_automatically",
+   "fieldtype": "Check",
+   "label": "Generate Commission Invoices Automatically"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2024-07-27 19:13:29.346607",
+ "modified": "2024-08-14 23:53:51.112581",
  "modified_by": "Administrator",
  "module": "Agricultural Marketing",
- "name": "Commission Settings",
+ "name": "Agriculture Settings",
  "owner": "Administrator",
  "permissions": [
   {

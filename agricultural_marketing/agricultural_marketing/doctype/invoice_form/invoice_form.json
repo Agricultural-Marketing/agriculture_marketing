@@ -27,6 +27,7 @@
   "items",
   "commissions_section",
   "commissions",
+  "commission_invoice_reference",
   "pampers_commissions_section",
   "pamper_commissions",
   "section_break_cwcc",
@@ -84,11 +85,11 @@
    "fieldname": "supplier",
    "fieldtype": "Link",
    "label": "Supplier",
-   "options": "Customer",
+   "options": "Supplier",
    "reqd": 1
   },
   {
-   "fetch_from": "supplier.customer_name",
+   "fetch_from": "supplier.supplier_name",
    "fieldname": "supplier_name",
    "fieldtype": "Data",
    "label": "Supplier Name"
@@ -184,12 +185,19 @@
    "fieldtype": "Link",
    "label": "Company",
    "options": "Company"
+  },
+  {
+   "fieldname": "commission_invoice_reference",
+   "fieldtype": "Link",
+   "label": "Commission Invoice Reference",
+   "options": "Sales Invoice",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2024-07-31 11:48:42.995930",
+ "modified": "2024-08-15 01:46:29.591555",
  "modified_by": "Administrator",
  "module": "Agricultural Marketing",
  "name": "Invoice Form",

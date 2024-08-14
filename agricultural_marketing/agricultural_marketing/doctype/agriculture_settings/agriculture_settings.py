@@ -5,5 +5,5 @@
 from frappe.model.document import Document
 
 
-class CommissionSettings(Document):
+class AgricultureSettings(Document):
 	pass

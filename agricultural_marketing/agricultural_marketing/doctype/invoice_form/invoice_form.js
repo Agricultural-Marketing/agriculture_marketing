@@ -5,12 +5,23 @@ frappe.ui.form.on("Invoice Form", {
  	refresh(frm) {
      	filter_basic_info_fields(frm);
      	filter_child_tables_fields(frm);
-
- 	}
+ 	},
+ 	customer: function (frm, cdt, cdn) {
+ 	    frm.doc.items.forEach((row)=> {
+ 	        row.customer = frm.doc.customer;
+ 	        frm.refresh_field("items");
+ 	    });
+ 	},
+    pamper: function (frm, cdt, cdn) {
+        frm.doc.items.forEach((row)=> {
+ 	        row.pamper = frm.doc.pamper;
+ 	        frm.refresh_field("items");
+ 	    });
+ 	},
 });
 
 frappe.ui.form.on("Invoice Form Item", {
-    items_add: function (frm, cdt, dcn) {
+    items_add: function (frm, cdt, cdn) {
         let row = frm.selected_doc;
         row.pamper = frm.doc.pamper;
         row.customer = frm.doc.customer;
@@ -45,14 +56,6 @@ frappe.ui.form.on("Invoice Form Pamper Commission", {
 
 
 function filter_basic_info_fields(frm) {
-    frm.set_query("supplier", function () {
-			return {
-				filters: {
-					is_farmer: 1,
-				},
-			};
-		});
-
     frm.set_query("customer", function () {
         return {
             filters: {
@@ -77,7 +80,7 @@ function filter_child_tables_fields(frm) {
                     name: ["in", [frm.doc.customer, frm.doc.pamper]]
                 }
             }
-        };
+    };
     frm.fields_dict['items'].grid.get_field("pamper").get_query = function() {
         return {
             filters: {
