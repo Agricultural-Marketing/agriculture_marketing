@@ -178,6 +178,7 @@ class InvoiceForm(Document):
         if self.commission_invoice_reference:
             commission_invoice = frappe.get_doc("Sales Invoice", self.commission_invoice_reference)
             if commission_invoice.docstatus == 0:
+                commission_invoice.run_method("on_trash")
                 frappe.delete_doc("Sales Invoice", self.commission_invoice_reference, for_reload=True)
                 self.db_set("commission_invoice_reference", "")
             if commission_invoice.docstatus == 1:
@@ -187,9 +188,11 @@ class InvoiceForm(Document):
         if self.commission_invoice_reference:
             commission_invoice = frappe.get_doc("Sales Invoice", self.commission_invoice_reference)
             if commission_invoice.docstatus == 2:
+                commission_invoice.run_method("on_trash")
                 frappe.delete_doc("Sales Invoice", self.commission_invoice_reference, for_reload=True)
             else:
                 if commission_invoice.docstatus == 0:
+                    commission_invoice.run_method("on_trash")
                     frappe.delete_doc("Sales Invoice", self.commission_invoice_reference, for_reload=True)
                 if commission_invoice.docstatus == 1:
                     commission_invoice.cancel()
