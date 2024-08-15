@@ -46,16 +46,20 @@ class InvoiceForm(Document):
         if commission_item:
             self.set("commissions", [])
             commission_percentage = get_party_commission_percentage("Customer", self.supplier)
-            default_tax = self.settings.get("default_tax", 0)
+
+            default_tax_template = get_tax_template(self)
+            tax_rate = frappe.db.get_value("Sales Taxes and Charges",
+                                           {"parent": default_tax_template}, "rate") or 0
+
             price_after_commission = (self.grand_total * commission_percentage) / 100
             commission_total_with_taxes = (
-                    price_after_commission + ((price_after_commission * default_tax) / 100)
+                    price_after_commission + ((price_after_commission * tax_rate) / 100)
             )
             self.append("commissions", {
                 "item": commission_item,
                 "price": self.grand_total,
                 "commission": commission_percentage,
-                "taxes": default_tax,
+                "taxes": tax_rate,
                 "commission_total": commission_total_with_taxes
             })
             for item in self.items:
@@ -97,6 +101,34 @@ class InvoiceForm(Document):
             "credit_in_transaction_currency": self.grand_total,
             "transaction_exchange_rate": 1
         })
+        if len(self.commissions) != 0:
+            mops = frappe.get_doc("POS Profile", self.settings.get("pos_profile")).get("payments")
+            for mop in mops:
+                if mop.default:
+                    default_commission_account = frappe.db.get_value(
+                        "Mode of Payment Account",
+                        {"parent": mop.mode_of_payment, "company": self.company},
+                        "default_account",
+                    )
+                    break
+
+            for commission in self.commissions:
+                gl_entries.append({
+                    "posting_date": self.posting_date,
+                    "due_date": self.posting_date,
+                    "account": default_commission_account,
+                    "party_type": "Customer",
+                    "party": self.supplier,
+                    "debit": commission.commission_total,
+                    "account_currency": company_defaults.default_currency,
+                    "debit_in_account_currency": commission.commission_total,
+                    "voucher_type": self.doctype,
+                    "voucher_no": self.name,
+                    "company": self.company,
+                    "cost_center": company_defaults.cost_center,
+                    "debit_in_transaction_currency": commission.commission_total,
+                    "transaction_exchange_rate": 1
+                })
 
     def make_customers_gl_entries(self, gl_entries, company_defaults):
         for it in self.items:
@@ -168,8 +200,8 @@ class InvoiceForm(Document):
 
         # Generate the commission sales invoice
         pos_profile = frappe.get_doc("POS Profile", self.settings.get("pos_profile"))
-        commission_invoice = create_commission_invoice(self.name, supplier_related_customer, pos_profile,
-                                                       self.settings.get("commission_item"), total_commission)
+        commission_invoice = create_commission_invoice(self, supplier_related_customer, pos_profile,
+                                                       total_commission)
         self.db_set("commission_invoice_reference", commission_invoice.name)
 
     def cancel_commission_invoice(self):
@@ -232,7 +264,7 @@ def get_party_commission_percentage(party_type, party):
     return frappe.get_single("Agriculture Settings").get("customer_commission_percentage", 0)
 
 
-def create_commission_invoice(invoice_id, supplier_related_customer, pos_profile, commission_item, total_commission):
+def create_commission_invoice(invoice, supplier_related_customer, pos_profile, total_commission):
     commission_invoice = frappe.new_doc("Sales Invoice")
     commission_invoice.update({
         "customer": supplier_related_customer,
@@ -240,18 +272,33 @@ def create_commission_invoice(invoice_id, supplier_related_customer, pos_profile
         "pos_profile": pos_profile.get("name")
     })
     commission_invoice.append("items", {
-        "item_code": commission_item,
-        "description": commission_item + "\n" + invoice_id,
+        "item_code": invoice.settings.get("commission_item"),
+        "description": invoice.settings.get("commission_item") + "\n" + invoice.name,
         "qty": 1,
         "rate": total_commission
     })
+    default_tax_template = get_tax_template(invoice)
+    commission_invoice.update({
+        "taxes_and_charges": default_tax_template
+    })
+    commission_invoice.save()
     for mop in pos_profile.get("payments", []):
         if mop.default:
             default_mop = mop.mode_of_payment
 
     commission_invoice.append("payments", {
         "mode_of_payment": default_mop,
-        "amount": total_commission
+        "amount": commission_invoice.grand_total
     })
     commission_invoice.save()
     return commission_invoice
+
+
+def get_tax_template(invoice):
+    default_tax_template = invoice.settings.get("default_tax")
+
+    if not default_tax_template:
+        default_tax_template = frappe.db.get_value("Sales Taxes and Charges",
+                                                   {"is_default": 1}, "name")
+
+    return default_tax_template

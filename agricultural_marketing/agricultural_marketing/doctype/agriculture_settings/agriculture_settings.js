@@ -9,6 +9,13 @@ frappe.ui.form.on("Agriculture Settings", {
                     commission_item: 1,
                 },
             };
-    });
+        });
+        frm.set_query("default_tax", function () {
+            return {
+                filters: {
+                    is_default: 1,
+                },
+            };
+        });
     },
 });

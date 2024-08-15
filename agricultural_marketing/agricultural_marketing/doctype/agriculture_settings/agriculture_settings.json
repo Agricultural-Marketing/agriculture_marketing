@@ -8,11 +8,10 @@
   "calculating_ninvoiced_commissions",
   "generate_commission_invoices_automatically",
   "customer_commission_percentage",
-  "default_tax",
   "column_break_nyvz",
   "commission_item",
   "pos_profile",
-  "commission_account"
+  "default_tax"
  ],
  "fields": [
   {
@@ -30,8 +29,9 @@
   },
   {
    "fieldname": "default_tax",
-   "fieldtype": "Percent",
-   "label": "Default Tax"
+   "fieldtype": "Link",
+   "label": "Default Tax",
+   "options": "Sales Taxes and Charges Template"
   },
   {
    "default": "0",
@@ -50,12 +50,6 @@
    "options": "POS Profile"
   },
   {
-   "fieldname": "commission_account",
-   "fieldtype": "Link",
-   "label": "Commission Account",
-   "options": "Account"
-  },
-  {
    "fieldname": "commission_item",
    "fieldtype": "Link",
    "label": "Commission Item",
@@ -65,7 +59,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2024-08-16 00:29:54.353209",
+ "modified": "2024-08-16 01:43:33.079585",
  "modified_by": "Administrator",
  "module": "Agricultural Marketing",
  "name": "Agriculture Settings",
