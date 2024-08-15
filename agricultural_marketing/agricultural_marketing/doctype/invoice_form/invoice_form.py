@@ -10,14 +10,16 @@ import copy
 
 
 class InvoiceForm(Document):
+
+    settings = frappe.get_single("Agriculture Settings")
+
     def validate(self):
         self.update_grand_total()
         self.update_commission_and_taxes()
 
     def on_submit(self):
         self.make_gl_entries()
-        if frappe.db.get_single_value("Agriculture Settings",
-                                      "generate_commission_invoices_automatically"):
+        if self.settings.get("generate_commission_invoices_automatically"):
             self.generate_commission_invoice()
 
     def on_cancel(self):
@@ -40,11 +42,11 @@ class InvoiceForm(Document):
             self.grand_total += item.total
 
     def update_commission_and_taxes(self):
-        commission_item = frappe.get_value("Item", {"commission_item": 1}, "name") or None
+        commission_item = self.settings.get("commission_item")
         if commission_item:
             self.set("commissions", [])
             commission_percentage = get_party_commission_percentage("Customer", self.supplier)
-            default_tax = frappe.get_single("Agriculture Settings").get("default_tax", 0)
+            default_tax = self.settings.get("default_tax", 0)
             price_after_commission = (self.grand_total * commission_percentage) / 100
             commission_total_with_taxes = (
                     price_after_commission + ((price_after_commission * default_tax) / 100)
@@ -159,19 +161,15 @@ class InvoiceForm(Document):
         if not supplier_related_customer:
             frappe.throw(_("Supplier is not linked to a customer"))
 
-        # Get commission item
-        commission_item = frappe.db.get_value("Item", {"commission_item": 1}, "name")
-
         # Calculate total commission amount
         total_commission = 0
         for it in self.commissions:
             total_commission += (it.price * it.commission) / 100
 
         # Generate the commission sales invoice
-        pos_profile = frappe.get_doc("POS Profile", {"company": self.company})
-
-        commission_invoice = create_commission_invoice(supplier_related_customer, pos_profile,
-                                                       commission_item, total_commission)
+        pos_profile = frappe.get_doc("POS Profile", self.settings.get("pos_profile"))
+        commission_invoice = create_commission_invoice(self.name, supplier_related_customer, pos_profile,
+                                                       self.settings.get("commission_item"), total_commission)
         self.db_set("commission_invoice_reference", commission_invoice.name)
 
     def cancel_commission_invoice(self):
@@ -234,7 +232,7 @@ def get_party_commission_percentage(party_type, party):
     return frappe.get_single("Agriculture Settings").get("customer_commission_percentage", 0)
 
 
-def create_commission_invoice(supplier_related_customer, pos_profile, commission_item, total_commission):
+def create_commission_invoice(invoice_id, supplier_related_customer, pos_profile, commission_item, total_commission):
     commission_invoice = frappe.new_doc("Sales Invoice")
     commission_invoice.update({
         "customer": supplier_related_customer,
@@ -243,6 +241,7 @@ def create_commission_invoice(supplier_related_customer, pos_profile, commission
     })
     commission_invoice.append("items", {
         "item_code": commission_item,
+        "description": commission_item + "\n" + invoice_id,
         "qty": 1,
         "rate": total_commission
     })
