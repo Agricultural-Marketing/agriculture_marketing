@@ -42,6 +42,7 @@ class InvoiceForm(Document):
             self.grand_total += item.total
 
     def update_commission_and_taxes(self):
+        self.total_commissions_and_taxes = 0
         commission_item = self.settings.get("commission_item")
         if commission_item:
             self.set("commissions", [])
@@ -62,6 +63,7 @@ class InvoiceForm(Document):
                 "taxes": tax_rate,
                 "commission_total": commission_total_with_taxes
             })
+            self.total_commissions_and_taxes = commission_total_with_taxes
             for item in self.items:
                 item.commission = (item.total * commission_percentage) / 100
 
@@ -84,12 +86,11 @@ class InvoiceForm(Document):
             gle.submit()
 
     def make_supplier_gl_entry(self, gl_entries, company_defaults):
-        supplier_related_customer = frappe.db.get_value("Supplier", self.supplier, "related_customer")
         gl_entries.append({
             "posting_date": self.posting_date,
             "due_date": self.posting_date,
-            "account": get_party_account("Customer", supplier_related_customer, self.company),
-            "party_type": "Customer",
+            "account": get_party_account("Supplier", self.supplier, self.company),
+            "party_type": "Supplier",
             "party": self.supplier,
             "credit": self.grand_total,
             "account_currency": company_defaults.default_currency,
@@ -101,53 +102,37 @@ class InvoiceForm(Document):
             "credit_in_transaction_currency": self.grand_total,
             "transaction_exchange_rate": 1
         })
-        if len(self.commissions) != 0:
-            mops = frappe.get_doc("POS Profile", self.settings.get("pos_profile")).get("payments")
-            for mop in mops:
-                if mop.default:
-                    default_commission_account = frappe.db.get_value(
-                        "Mode of Payment Account",
-                        {"parent": mop.mode_of_payment, "company": self.company},
-                        "default_account",
-                    )
-                    break
+        self.make_gl_dict_for_commission(gl_entries, company_defaults)
 
-            for commission in self.commissions:
+    def make_customers_gl_entries(self, gl_entries, company_defaults):
+        customers = []
+        for it in self.items:
+            if it.customer in customers:
+                customer_record = [d for d in gl_entries if d.get("party") == it.customer][0]
+                customer_record.update({
+                    "debit": customer_record["debit"] + it.total,
+                    "debit_in_account_currency": customer_record["debit_in_account_currency"] + it.total,
+                    "debit_in_transaction_currency": customer_record["debit_in_transaction_currency"] + it.total,
+
+                })
+            else:
                 gl_entries.append({
                     "posting_date": self.posting_date,
                     "due_date": self.posting_date,
-                    "account": default_commission_account,
+                    "account": company_defaults.default_receivable_account,
                     "party_type": "Customer",
-                    "party": self.supplier,
-                    "debit": commission.commission_total,
+                    "party": it.customer,
+                    "debit": it.total,
                     "account_currency": company_defaults.default_currency,
-                    "debit_in_account_currency": commission.commission_total,
+                    "debit_in_account_currency": it.total,
                     "voucher_type": self.doctype,
                     "voucher_no": self.name,
                     "company": self.company,
                     "cost_center": company_defaults.cost_center,
-                    "debit_in_transaction_currency": commission.commission_total,
+                    "debit_in_transaction_currency": it.total,
                     "transaction_exchange_rate": 1
                 })
-
-    def make_customers_gl_entries(self, gl_entries, company_defaults):
-        for it in self.items:
-            gl_entries.append({
-                "posting_date": self.posting_date,
-                "due_date": self.posting_date,
-                "account": company_defaults.default_receivable_account,
-                "party_type": "Customer",
-                "party": it.customer,
-                "debit": it.total,
-                "account_currency": company_defaults.default_currency,
-                "debit_in_account_currency": it.total,
-                "voucher_type": self.doctype,
-                "voucher_no": self.name,
-                "company": self.company,
-                "cost_center": company_defaults.cost_center,
-                "debit_in_transaction_currency": it.total,
-                "transaction_exchange_rate": 1
-            })
+                customers.append(it.customer)
 
     def make_gl_entries_on_cancel(self):
         gl_entry = frappe.qb.DocType("GL Entry")
@@ -208,8 +193,7 @@ class InvoiceForm(Document):
         if self.commission_invoice_reference:
             commission_invoice = frappe.get_doc("Sales Invoice", self.commission_invoice_reference)
             if commission_invoice.docstatus == 0:
-                commission_invoice.run_method("on_trash")
-                frappe.delete_doc("Sales Invoice", self.commission_invoice_reference, for_reload=True)
+                delete_reference_invoice(commission_invoice)
                 self.db_set("commission_invoice_reference", "")
             if commission_invoice.docstatus == 1:
                 commission_invoice.cancel()
@@ -218,14 +202,56 @@ class InvoiceForm(Document):
         if self.commission_invoice_reference:
             commission_invoice = frappe.get_doc("Sales Invoice", self.commission_invoice_reference)
             if commission_invoice.docstatus == 2:
-                commission_invoice.run_method("on_trash")
-                frappe.delete_doc("Sales Invoice", self.commission_invoice_reference, for_reload=True)
+                delete_reference_invoice(commission_invoice)
             else:
                 if commission_invoice.docstatus == 0:
-                    commission_invoice.run_method("on_trash")
-                    frappe.delete_doc("Sales Invoice", self.commission_invoice_reference, for_reload=True)
+                    delete_reference_invoice(commission_invoice)
                 if commission_invoice.docstatus == 1:
                     commission_invoice.cancel()
+
+    def make_gl_dict_for_commission(self, gl_entries, company_defaults):
+        if len(self.commissions) != 0:
+            mops = frappe.get_doc("POS Profile", self.settings.get("pos_profile")).get("payments")
+            for mop in mops:
+                if mop.default:
+                    default_commission_account = frappe.db.get_value(
+                        "Mode of Payment Account",
+                        {"parent": mop.mode_of_payment, "company": self.company},
+                        "default_account",
+                    )
+                    break
+
+            gl_entries.append({
+                "posting_date": self.posting_date,
+                "due_date": self.posting_date,
+                "account": get_party_account("Supplier", self.supplier, self.company),
+                "party_type": "Supplier",
+                "party": self.supplier,
+                "debit": self.total_commissions_and_taxes,
+                "account_currency": company_defaults.default_currency,
+                "debit_in_account_currency": self.total_commissions_and_taxes,
+                "voucher_type": self.doctype,
+                "voucher_no": self.name,
+                "company": self.company,
+                "cost_center": company_defaults.cost_center,
+                "debit_in_transaction_currency": self.total_commissions_and_taxes,
+                "transaction_exchange_rate": 1
+            })
+
+            gl_entries.append({
+                "posting_date": self.posting_date,
+                "due_date": self.posting_date,
+                "account": default_commission_account,
+                "credit": self.total_commissions_and_taxes,
+                "account_currency": company_defaults.default_currency,
+                "credit_in_account_currency": self.total_commissions_and_taxes,
+                "voucher_type": self.doctype,
+                "voucher_no": self.name,
+                "company": self.company,
+                "cost_center": company_defaults.cost_center,
+                "credit_in_transaction_currency": self.total_commissions_and_taxes,
+                "transaction_exchange_rate": 1
+            })
 
 
 def set_as_cancel(voucher_type, voucher_no):
@@ -302,3 +328,8 @@ def get_tax_template(invoice):
                                                    {"is_default": 1}, "name")
 
     return default_tax_template
+
+
+def delete_reference_invoice(ref_invoice):
+    ref_invoice.run_method("on_trash")
+    frappe.delete_doc("Sales Invoice", ref_invoice.name, for_reload=True)

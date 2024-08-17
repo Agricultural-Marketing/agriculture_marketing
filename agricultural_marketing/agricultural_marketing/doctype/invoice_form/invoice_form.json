@@ -31,7 +31,8 @@
   "pampers_commissions_section",
   "pamper_commissions",
   "section_break_cwcc",
-  "grand_total"
+  "grand_total",
+  "total_commissions_and_taxes"
  ],
  "fields": [
   {
@@ -92,7 +93,8 @@
    "fetch_from": "supplier.supplier_name",
    "fieldname": "supplier_name",
    "fieldtype": "Data",
-   "label": "Supplier Name"
+   "label": "Supplier Name",
+   "read_only": 1
   },
   {
    "fieldname": "column_break_yjsp",
@@ -120,7 +122,8 @@
    "fetch_from": "customer.customer_name",
    "fieldname": "customer_name",
    "fieldtype": "Data",
-   "label": "Customer Name"
+   "label": "Customer Name",
+   "read_only": 1
   },
   {
    "bold": 1,
@@ -133,7 +136,8 @@
    "fetch_from": "pamper.customer_name",
    "fieldname": "pamper_name",
    "fieldtype": "Data",
-   "label": "Pamper Name"
+   "label": "Pamper Name",
+   "read_only": 1
   },
   {
    "fieldname": "items_section",
@@ -192,12 +196,19 @@
    "label": "Commission Invoice Reference",
    "options": "Sales Invoice",
    "read_only": 1
+  },
+  {
+   "fieldname": "total_commissions_and_taxes",
+   "fieldtype": "Currency",
+   "label": "Total Commissions and Taxes",
+   "options": "currency",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2024-08-15 01:46:29.591555",
+ "modified": "2024-08-18 00:02:57.113947",
  "modified_by": "Administrator",
  "module": "Agricultural Marketing",
  "name": "Invoice Form",

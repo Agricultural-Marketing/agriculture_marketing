@@ -5,7 +5,6 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "calculating_ninvoiced_commissions",
   "generate_commission_invoices_automatically",
   "customer_commission_percentage",
   "column_break_nyvz",
@@ -14,12 +13,6 @@
   "default_tax"
  ],
  "fields": [
-  {
-   "default": "0",
-   "fieldname": "calculating_ninvoiced_commissions",
-   "fieldtype": "Check",
-   "label": "Calculating ninvoiced commissions"
-  },
   {
    "fieldname": "customer_commission_percentage",
    "fieldtype": "Percent",
@@ -59,7 +52,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2024-08-16 01:43:33.079585",
+ "modified": "2024-08-17 23:33:31.967527",
  "modified_by": "Administrator",
  "module": "Agricultural Marketing",
  "name": "Agriculture Settings",
