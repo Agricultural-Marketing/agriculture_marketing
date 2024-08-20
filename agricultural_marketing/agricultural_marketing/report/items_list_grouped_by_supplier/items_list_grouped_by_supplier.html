@@ -1,0 +1,65 @@
+
+<h2 class="text-center">{%= __("Items list grouped by supplier") %}</h2>
+<div class="row" style="display: flex; justify-content: space-between;">
+  <div class="col-xs-4" style="display: flex; justify-content: flex-start;">
+      <h5 class="text-center"> {%= __("مؤسسة خبراء المحصول التجارية") %} </h5>
+  </div>
+  <div class="col-xs-4" style="display: flex; justify-content: flex-end;">
+      <h5 class="text-center"> {%= __("Supplier:")%} {%= filters.supplier %} </h5>
+  </div>
+</div>
+<div class="row" style="display: flex; justify-content: space-between;">
+    <div class="col-xs-4" style="display: flex; justify-content: flex-start;">
+      <h5 class="text-center"> {%= __("المملكة العربية السعودية - الــقــصــيــم - بريدة") %} </h5>
+    </div>
+    <div class="col-xs-4" style="display: flex; justify-content: flex-end;">
+      <h5 class="text-center"> {{ __("Printed On:") }}
+          {%= frappe.datetime.str_to_user(frappe.datetime.get_datetime_as_string()) %}
+        </h5>
+  </div>
+</div>
+<div class="row" style="display: flex; justify-content: space-between;">
+    <div class="col-xs-4" style="display: flex; justify-content: flex-start;">
+      <h5 class="text-center"> {%= __("ج : 0551991123 ج : 0556818183 واتس : 0583137775") %} </h5>
+  </div>
+</div>
+<hr>
+<div class="row" style="display: flex; justify-content: space-between;">
+    {% if filters.from_date %}
+    <div class="col-xs-4" style="display: flex; justify-content: flex-start;">
+      <h5 class="text-center"> {{ __("From Date:") }}
+          {%= frappe.datetime.str_to_user(filters.from_date) %} </h5>
+    </div>
+    {% endif %}
+    {% if filters.to_date %}
+    <div class="col-xs-4" style="display: flex; justify-content: flex-end;">
+      <h5 class="text-center"> {{ __("To Date:") }}
+          {%= frappe.datetime.str_to_user(filters.to_date) %}
+        </h5>
+  </div>
+    {% endif %}
+</div>
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th style="width: 5%">{%= __("Total Selling") %}</th>
+            <th style="width: 8%">{%= __("Total Commission") %}</th>
+            <th style="width: 10%">{%= __("Item") %}</th>
+            <th style="width: 8%">{%= __("Total Quantity") %}</th>
+            <th style="width: 8%">{%= __("Average Price") %}</th>
+            <th style="width: 8%">{%= __("Total") %}</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for(var i=0, l=data.length; i< l; i++) { %}
+            <tr>
+                <td>{%= data[i]["total_selling"] %}</td>
+                <td>{%= data[i]["total_commission"] %}</td>
+                <td>{%= data[i]["item_name"] %}</td>
+                <td>{%= data[i]["total_qty"] %}</td>
+                <td>{%= data[i]["price"] %}</td>
+                <td>{%= data[i]["total"] %}</td>
+            </tr>
+        {% } %}
+    </tbody>
+</table>

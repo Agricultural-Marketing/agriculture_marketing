@@ -8,7 +8,8 @@ to a section with the version name.
 
 ## Unreleased Changes
 ### Reports:
-    * Items list suppliers invoices.
+* Items list suppliers invoices.
+* Items list grouped by supplier.
 
 ## 1.0.0
 
