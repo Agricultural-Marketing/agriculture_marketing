@@ -3,6 +3,7 @@
 
 import frappe
 from frappe import _
+from frappe.contacts.doctype.address.address import get_company_address
 
 
 def execute(filters=None):
@@ -62,6 +63,9 @@ def execute(filters=None):
     if data:
         calculate_totals(data, commissions_and_taxes)
 
+    company_defaults = frappe.get_doc("Company", "Agriculture Marketing (Demo)").as_dict()
+    company_defaults["address"] = get_company_address(company_defaults['name']).get("company_address_display")
+    data.append(company_defaults)
     return columns, data
 
 
@@ -75,7 +79,7 @@ def calculate_totals(data, commissions_and_taxes):
     total_row.update({
         "qty": None,
         "price": None,
-        "invoice_id": "Total Amount",
+        "invoice_id": _("Total Amount"),
         "total": total_amount
     })
     data.append(total_row)
@@ -85,13 +89,13 @@ def calculate_totals(data, commissions_and_taxes):
         total_commission_row = {
             "qty": None,
             "price": None,
-            "invoice_id": "Total Commission",
+            "invoice_id": _("Total Commission"),
             "total": total_commission
         }
         total_taxes_row = {
             "qty": None,
             "price": None,
-            "invoice_id": "Total Taxes",
+            "invoice_id": _("Taxes"),
             "total": total_taxes
         }
         data.append(total_commission_row)
@@ -101,7 +105,7 @@ def calculate_totals(data, commissions_and_taxes):
     net_total_row = {
         "qty": None,
         "price": None,
-        "invoice_id": "Net Total",
+        "invoice_id": _("Net Total"),
         "total": net_total
     }
     data.append(net_total_row)
@@ -145,6 +149,12 @@ def get_columns():
             "fieldname": "total",
             "label": _("Total"),
             "fieldtype": "Float",
+            "width": 100
+        },
+        {
+            "fieldname": "company_defaults",
+            "label": _("Company Defaults"),
+            "hidden": 1,
             "width": 100
         }
     ]

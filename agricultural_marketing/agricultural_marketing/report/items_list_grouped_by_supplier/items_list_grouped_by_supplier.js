@@ -4,6 +4,15 @@
 frappe.query_reports["Items list grouped by supplier"] = {
 	"filters": [
 	    {
+	        "fieldname": "company",
+            "label": __("Company"),
+            "fieldtype": "Link",
+            "options": "Company",
+            default: frappe.defaults.get_user_default('company'),
+            hidden: 1,
+            "wildcard_filter": 0
+        },
+	    {
            "fieldname": "supplier",
            "fieldtype": "Link",
            "label": "Supplier",
@@ -27,6 +36,6 @@ frappe.query_reports["Items list grouped by supplier"] = {
            "fieldtype": "Date",
            "label": "To Date",
            "wildcard_filter": 0
-        },
+        }
 	]
 };

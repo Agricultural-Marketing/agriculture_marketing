@@ -4,6 +4,7 @@
 import frappe
 from frappe import _
 from frappe.query_builder.functions import Sum, Count, Avg
+from frappe.contacts.doctype.address.address import get_company_address
 
 
 def execute(filters=None):
@@ -44,6 +45,9 @@ def execute(filters=None):
     if data:
         calculate_totals(data)
 
+    company_defaults = frappe.get_doc("Company", filters.get("company")).as_dict()
+    company_defaults["address"] = get_company_address(company_defaults['name']).get("company_address_display")
+    data.append(company_defaults)
     return columns, data
 
 
@@ -85,6 +89,12 @@ def get_columns():
             "label": _("Total"),
             "fieldtype": "Float",
             "width": 100
+        },
+        {
+            "fieldname": "company_defaults",
+            "label": _("Company Defaults"),
+            "hidden": 1,
+            "width": 100
         }
     ]
 
@@ -100,7 +110,7 @@ def calculate_totals(data):
         "total_qty": None,
         "price": None,
         "total_commission": None,
-        "total_selling": "Total Amount",
+        "total_selling": _("Total Amount"),
         "total": total_amount
     })
     data.append(total_row)
@@ -119,14 +129,14 @@ def calculate_totals(data):
         "total_qty": None,
         "price": None,
         "total_commission": None,
-        "total_selling": "Total Commission",
+        "total_selling": _("Total Commission"),
         "total": total_commission
     }
     total_taxes_row = {
         "total_qty": None,
         "price": None,
         "total_commission": None,
-        "total_selling": "Total Taxes",
+        "total_selling": _("Taxes"),
         "total": total_taxes
     }
     data.append(total_commission_row)
@@ -137,7 +147,7 @@ def calculate_totals(data):
         "total_qty": None,
         "price": None,
         "total_commission": None,
-        "total_selling": "Net Total",
+        "total_selling": _("Net Total"),
         "total": net_total
     }
     data.append(net_total_row)
