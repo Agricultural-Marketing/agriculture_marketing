@@ -110,7 +110,7 @@ def calculate_totals(data):
         "total_qty": None,
         "price": None,
         "total_commission": None,
-        "total_selling": _("Total Amount"),
+        "total_selling": _("Grand Total"),
         "total": total_amount
     })
     data.append(total_row)

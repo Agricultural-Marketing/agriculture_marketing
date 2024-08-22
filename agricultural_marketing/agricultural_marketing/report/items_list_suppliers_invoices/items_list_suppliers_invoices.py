@@ -79,7 +79,7 @@ def calculate_totals(data, commissions_and_taxes):
     total_row.update({
         "qty": None,
         "price": None,
-        "invoice_id": _("Total Amount"),
+        "invoice_id": _("Grand Total"),
         "total": total_amount
     })
     data.append(total_row)
