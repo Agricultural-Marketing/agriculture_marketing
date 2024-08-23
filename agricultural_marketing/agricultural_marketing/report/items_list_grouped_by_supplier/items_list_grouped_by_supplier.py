@@ -14,7 +14,7 @@ def execute(filters=None):
 
     items_query = frappe.qb.from_(invform).left_join(invformitem).on(
         invformitem.parent == invform.name
-    )
+    ).where(invform.company == filters.get('company'))
 
     if filters.get("supplier"):
         items_query = items_query.where(invform.supplier == filters.get('supplier'))

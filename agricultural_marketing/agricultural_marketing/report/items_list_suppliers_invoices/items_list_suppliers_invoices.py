@@ -14,11 +14,10 @@ def execute(filters=None):
     invformcomm = frappe.qb.DocType("Invoice Form Commission")
 
     invoices_query = frappe.qb.from_(invform).left_join(invformitem).on(
-        invformitem.parent == invform.name)
+        invformitem.parent == invform.name).where(invform.company == filters.get('company'))
 
     commission_and_taxes_query = frappe.qb.from_(invform).left_join(invformcomm).on(
-        invformcomm.parent == invform.name
-    )
+        invformcomm.parent == invform.name).where(invform.company == filters.get('company'))
 
     if filters.get("supplier"):
         invoices_query = invoices_query.where(invform.supplier == filters.get('supplier'))

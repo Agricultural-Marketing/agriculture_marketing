@@ -9,7 +9,7 @@ frappe.query_reports["Items list suppliers invoices"] = {
             "fieldtype": "Link",
             "options": "Company",
             default: frappe.defaults.get_user_default('company'),
-            hidden: 1,
+            reqd: 1,
             "wildcard_filter": 0
         },
 	    {
