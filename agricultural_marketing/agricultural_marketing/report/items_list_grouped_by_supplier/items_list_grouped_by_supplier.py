@@ -34,6 +34,9 @@ def execute(filters=None):
     if filters.get("to_date"):
         items_query = items_query.where(invform.posting_date.lte(filters.get("to_date")))
 
+    docstatuses = ["0", "1"] if filters.get("draft") else ["1"]
+    items_query = items_query.where(invform.docstatus.isin(docstatuses))
+
     data = items_query.select(Count(invform.name).as_("total_selling").distinct(),
                               invformitem.item_name.as_("item_name"),
                               Sum(invformitem.commission).as_("total_commission"),

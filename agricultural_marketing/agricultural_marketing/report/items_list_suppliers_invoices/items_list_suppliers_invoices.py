@@ -50,6 +50,10 @@ def execute(filters=None):
         invoices_query = invoices_query.where(invform.posting_date.lte(filters.get("to_date")))
         commission_and_taxes_query = commission_and_taxes_query.where(invform.posting_date.lte(filters.get("to_date")))
 
+    docstatuses = ["0", "1"] if filters.get("draft") else ["1"]
+    invoices_query = invoices_query.where(invform.docstatus.isin(docstatuses))
+    commission_and_taxes_query = commission_and_taxes_query.where(invform.docstatus.isin(docstatuses))
+
     data = invoices_query.select(invform.name.as_("invoice_id"), invform.posting_date.as_("date"), invformitem.qty,
                                  invformitem.price, invformitem.total, invformitem.item_name).run(as_dict=True)
 
