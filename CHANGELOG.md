@@ -10,6 +10,8 @@ to a section with the version name.
 ### Reports:
 * Items list suppliers invoices.
 * Items list grouped by supplier.
+* Items list customers invoices.
+* Items list grouped by customer.
 
 ## 1.0.0
 

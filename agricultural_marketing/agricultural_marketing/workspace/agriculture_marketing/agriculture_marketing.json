@@ -1,6 +1,6 @@
 {
  "charts": [],
- "content": "[{\"id\":\"zW8e7j728U\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Agriculture Marketing</span>\",\"col\":12}},{\"id\":\"YupUTk0-Vn\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Invoice Forms\",\"col\":3}},{\"id\":\"jPoGpZCoH5\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"GL Entry\",\"col\":3}},{\"id\":\"xuC74iWULQ\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Agriculture Settings\",\"col\":3}},{\"id\":\"FW5yzDt7Rz\",\"type\":\"card\",\"data\":{\"card_name\":\"Reports\",\"col\":4}}]",
+ "content": "[{\"id\":\"zW8e7j728U\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Agriculture Marketing</span>\",\"col\":12}},{\"id\":\"YupUTk0-Vn\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Invoice Forms\",\"col\":3}},{\"id\":\"jPoGpZCoH5\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"GL Entry\",\"col\":3}},{\"id\":\"xuC74iWULQ\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Agriculture Settings\",\"col\":3}},{\"id\":\"FW5yzDt7Rz\",\"type\":\"card\",\"data\":{\"card_name\":\"Supplier Reports\",\"col\":4}},{\"id\":\"NG5lVtpWLo\",\"type\":\"card\",\"data\":{\"card_name\":\"Customer Reports\",\"col\":4}}]",
  "creation": "2024-07-27 17:53:30.500530",
  "custom_blocks": [],
  "docstatus": 0,
@@ -16,7 +16,7 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Reports",
+   "label": "Customer Reports",
    "link_count": 2,
    "link_type": "DocType",
    "onboard": 0,
@@ -24,7 +24,36 @@
   },
   {
    "hidden": 0,
+   "is_query_report": 1,
+   "label": "Items list customers invoices",
+   "link_count": 0,
+   "link_to": "Items list customers invoices",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Items list grouped by customer",
+   "link_count": 0,
+   "link_to": "Items list grouped by customer",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
    "is_query_report": 0,
+   "label": "Supplier Reports",
+   "link_count": 2,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
    "label": "Items list suppliers invoices",
    "link_count": 0,
    "link_to": "Items list suppliers invoices",
@@ -34,7 +63,7 @@
   },
   {
    "hidden": 0,
-   "is_query_report": 0,
+   "is_query_report": 1,
    "label": "Items list grouped by supplier",
    "link_count": 0,
    "link_to": "Items list grouped by supplier",
@@ -43,7 +72,7 @@
    "type": "Link"
   }
  ],
- "modified": "2024-08-20 10:05:11.605803",
+ "modified": "2024-08-25 21:40:15.170176",
  "modified_by": "Administrator",
  "module": "Agricultural Marketing",
  "name": "Agriculture Marketing",
