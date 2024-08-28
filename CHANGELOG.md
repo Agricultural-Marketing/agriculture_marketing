@@ -7,11 +7,16 @@ Add changes to the "Unreleased Changes" section. Once you create a version (and 
 to a section with the version name.
 
 ## Unreleased Changes
-### Reports:
+### Reports
+
 * Items list suppliers invoices.
 * Items list grouped by supplier.
 * Items list customers invoices.
 * Items list grouped by customer.
+
+### Print invoice form
+
+* Choose to print invoice for the supplier or specific of customers.
 
 ## 1.0.0
 

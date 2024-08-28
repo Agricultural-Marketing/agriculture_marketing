@@ -10,7 +10,6 @@ import copy
 
 
 class InvoiceForm(Document):
-
     settings = frappe.get_single("Agriculture Settings")
 
     def validate(self):
@@ -281,7 +280,7 @@ def get_party_commission_percentage(party_type, party):
     # Get the percentage from the party group doc
     party_group_doctype = "Customer Group" if party_type == "Customer" else "Supplier Group"
     group_field_name = "customer_group" if party_type == "Customer" else "supplier_group"
-    party_group = frappe.db.get_value(party_type, party,group_field_name)
+    party_group = frappe.db.get_value(party_type, party, group_field_name)
     commission_percentage = frappe.db.get_value(party_group_doctype, party_group, "commission_percentage")
     if commission_percentage:
         return commission_percentage
@@ -333,3 +332,21 @@ def get_tax_template(invoice):
 def delete_reference_invoice(ref_invoice):
     ref_invoice.run_method("on_trash")
     frappe.delete_doc("Sales Invoice", ref_invoice.name, for_reload=True)
+
+
+def build_pdf_template_context(filters):
+    invform = frappe.qb.DocType("Invoice Form")
+    invformitem = frappe.qb.DocType("Invoice Form Item")
+
+    if filters.get("party_type") == "Supplier":
+        res = [frappe.get_doc(filters.get("reference_doctype"), filters.get("reference_name")).as_dict()]
+    else:
+        res = frappe.qb.from_(invform).join(invformitem).on(
+            (invformitem.parent == invform.name)
+            & (invformitem.customer == filters.get("party"))
+        ).where(invform.name == filters.get("reference_name")).select(
+            invform.name, invform.company, invform.posting_date, invform.customer,
+            invformitem.item_name, invformitem.qty, invformitem.price, invformitem.total
+        ).run(as_dict=True)
+
+    return res

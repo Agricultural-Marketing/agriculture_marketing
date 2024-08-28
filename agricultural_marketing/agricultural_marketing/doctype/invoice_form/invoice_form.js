@@ -5,6 +5,52 @@ frappe.ui.form.on("Invoice Form", {
  	refresh(frm) {
      	filter_basic_info_fields(frm);
      	filter_child_tables_fields(frm);
+     	frm.add_custom_button("Print", () => {
+     	    let dialog = new frappe.ui.Dialog({
+     	        title: "Print options",
+     	        fields: [
+     	            {
+                        label: 'Party Type',
+                        fieldname: 'party_type',
+                        fieldtype: 'Link',
+                        options: "DocType",
+                        get_query: function () {
+                            return {
+                                filters: {
+                                    name: ["in", ["Supplier", "Customer"]]
+                                },
+                            };
+					    },
+					    onchange: function () {
+    					    let field = dialog.fields_dict["party_type"];
+    					    if (field.value) {
+							    dialog.set_df_property("party", "options", field.value);
+                                dialog.set_df_property("party", "hidden", 0);
+                                dialog.set_df_property("party", "get_query", get_query(frm, field.value));
+    					    } else {
+							    dialog.set_df_property("party", "options", "Supplier");
+                                dialog.set_df_property("party", "hidden", 1);
+    					    }
+						},
+                    },
+                    {
+                        label: 'Party',
+                        fieldname: 'party',
+                        fieldtype: 'Link',
+                        hidden: 1,
+                    },
+     	        ],
+     	        size: "small",
+     	        primary_action_label: 'Print',
+                primary_action(values) {
+                    values['reference_doctype'] = frm.doc.doctype
+                    values['reference_name'] = frm.doc.name
+                    dialog.hide();
+        			window.open(`/api/method/agricultural_marketing.pdf.get_pdf?filters={"reference_doctype": "${values.reference_doctype}", "reference_name": "${values.reference_name}", "party_type": "${values.party_type}", "party": "${values.party}"}&template=invoice_form&doctype=invoice_form`);
+                }
+     	    });
+     	    dialog.show();
+        })
  	},
  	customer: function (frm, cdt, cdn) {
  	    frm.doc.items.forEach((row)=> {
@@ -149,4 +195,23 @@ function calculate_commission(frm) {
     row.percentage = (row.percentage) ? row.percentage: 0;
     row.commission = (row.price * row.percentage) / 100;
     frm.refresh_field('pamper_commissions');
+}
+
+let get_query = function (frm, doctype) {
+    result = []
+    if (doctype == "Supplier") {
+        result.push(frm.doc.supplier);
+    } else {
+        let rows = frm.doc.items;
+        for (var i=0; i<rows.length; i++) {
+            if (!result.includes(rows[i].customer)) {
+                result.push(rows[i].customer)
+            }
+        }
+    }
+    return {
+        filters: {
+            name: ["in", result]
+        },
+    };
 }
