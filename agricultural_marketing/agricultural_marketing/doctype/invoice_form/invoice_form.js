@@ -14,6 +14,7 @@ frappe.ui.form.on("Invoice Form", {
                         fieldname: 'party_type',
                         fieldtype: 'Link',
                         options: "DocType",
+                        reqd: 1,
                         get_query: function () {
                             return {
                                 filters: {
@@ -22,31 +23,63 @@ frappe.ui.form.on("Invoice Form", {
                             };
 					    },
 					    onchange: function () {
-    					    let field = dialog.fields_dict["party_type"];
-    					    if (field.value) {
-							    dialog.set_df_property("party", "options", field.value);
-                                dialog.set_df_property("party", "hidden", 0);
-                                dialog.set_df_property("party", "get_query", get_query(frm, field.value));
+    					    let partyTypeField = dialog.fields_dict["party_type"];
+    					    if (partyTypeField.value) {
+                                dialog.set_df_property("party", "options", partyTypeField.value);
+                                if (partyTypeField.value == "Supplier") {
+    					            dialog.set_df_property("party", "hidden", 0);
+                                    dialog.set_df_property("customer_type", "hidden", 1);
+                                    dialog.set_df_property("customer_type", "reqd", 0);
+                                    dialog.set_df_property("party", "get_query", get_query(frm, partyTypeField.value, ""));
+                                } else {
+    					            dialog.set_df_property("party", "hidden", 1);
+                                    dialog.set_df_property("customer_type", "hidden", 0);
+                                    dialog.set_df_property("customer_type", "reqd", 1);
+                                }
     					    } else {
-							    dialog.set_df_property("party", "options", "Supplier");
-                                dialog.set_df_property("party", "hidden", 1);
+    					        dialog.fields_dict["party"].value = "";
+    					        dialog.set_df_property("party", "hidden", 1);
+    					        dialog.fields_dict["customer_type"].value = "";
+                                dialog.set_df_property("customer_type", "hidden", 1);
     					    }
 						},
+                    },
+                    {
+                        label: 'Customer Type',
+                        fieldname: 'customer_type',
+                        fieldtype: 'Select',
+                        options: ["", "Customer", "Pamper"],
+                        hidden:1,
+                        reqd: 1,
+                        onchange: function() {
+    					    let partyTypeField = dialog.fields_dict["party_type"];
+    					    let customerTypeField = dialog.fields_dict["customer_type"];
+    					    if (customerTypeField.value) {
+                                dialog.set_df_property("party", "hidden", 0);
+                                dialog.set_df_property("party", "get_query", get_query(frm, partyTypeField.value,
+                                customerTypeField.value));
+    					    } else {
+    					        dialog.fields_dict["party"].value = "";
+                                dialog.set_df_property("party", "hidden", 1);
+    					    }
+                        },
                     },
                     {
                         label: 'Party',
                         fieldname: 'party',
                         fieldtype: 'Link',
                         hidden: 1,
+                        reqd: 1,
                     },
      	        ],
      	        size: "small",
      	        primary_action_label: 'Print',
                 primary_action(values) {
+                    values['customer_type'] = (values['customer_type']) ? values['customer_type'] : "";
                     values['reference_doctype'] = frm.doc.doctype
                     values['reference_name'] = frm.doc.name
                     dialog.hide();
-        			window.open(`/api/method/agricultural_marketing.pdf.get_pdf?filters={"reference_doctype": "${values.reference_doctype}", "reference_name": "${values.reference_name}", "party_type": "${values.party_type}", "party": "${values.party}"}&template=invoice_form&doctype=invoice_form`);
+        			window.open(`/api/method/agricultural_marketing.pdf.get_pdf?filters={"reference_doctype": "${values.reference_doctype}", "reference_name": "${values.reference_name}", "party_type": "${values.party_type}", "party": "${values.party}", "customer_type": "${values.customer_type}"}&template=invoice_form&doctype=invoice_form`);
                 }
      	    });
      	    dialog.show();
@@ -197,15 +230,23 @@ function calculate_commission(frm) {
     frm.refresh_field('pamper_commissions');
 }
 
-let get_query = function (frm, doctype) {
+let get_query = function (frm, partyType, customerType) {
     result = []
-    if (doctype == "Supplier") {
+    if (partyType == "Supplier") {
         result.push(frm.doc.supplier);
     } else {
         let rows = frm.doc.items;
-        for (var i=0; i<rows.length; i++) {
-            if (!result.includes(rows[i].customer)) {
-                result.push(rows[i].customer)
+        if (customerType == "Customer") {
+            for (var i=0; i<rows.length; i++) {
+                if (!result.includes(rows[i].customer)) {
+                    result.push(rows[i].customer)
+                }
+            }
+        } else {
+            for (var i=0; i<rows.length; i++) {
+                if (!result.includes(rows[i].pamper)) {
+                    result.push(rows[i].pamper)
+                }
             }
         }
     }

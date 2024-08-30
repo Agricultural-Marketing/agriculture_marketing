@@ -341,12 +341,24 @@ def build_pdf_template_context(filters):
     if filters.get("party_type") == "Supplier":
         res = [frappe.get_doc(filters.get("reference_doctype"), filters.get("reference_name")).as_dict()]
     else:
-        res = frappe.qb.from_(invform).join(invformitem).on(
-            (invformitem.parent == invform.name)
-            & (invformitem.customer == filters.get("party"))
-        ).where(invform.name == filters.get("reference_name")).select(
-            invform.name, invform.company, invform.posting_date, invform.customer,
-            invformitem.item_name, invformitem.qty, invformitem.price, invformitem.total
-        ).run(as_dict=True)
+        inv_query = frappe.qb.from_(invform).join(invformitem)
+
+        if filters.get("customer_type") == "Customer":
+            res = inv_query.on(
+                (invformitem.parent == invform.name) & (invformitem.customer == filters.get("party"))).where(
+                invform.name == filters.get("reference_name")).select(
+                invform.supplier, invform.customer.as_('inv_customer'),
+                invform.name, invform.company, invform.posting_date, invformitem.customer,
+                invformitem.item_name, invformitem.qty, invformitem.price, invformitem.total).run(
+                as_dict=True)
+
+        else:
+            res = inv_query.on(
+                (invformitem.parent == invform.name) & (invformitem.pamper == filters.get("party"))).where(
+                invform.name == filters.get("reference_name")).select(
+                invform.supplier, invform.customer.as_('inv_customer'),
+                invform.name, invform.company, invform.posting_date, invformitem.pamper,
+                invformitem.item_name, invformitem.qty, invformitem.price, invformitem.total).run(
+                as_dict=True)
 
     return res

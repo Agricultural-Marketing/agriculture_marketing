@@ -3,6 +3,7 @@ import os
 
 import frappe
 from frappe import _
+from frappe.utils.jinja_globals import is_rtl
 from frappe.utils.pdf import get_pdf as _get_pdf
 from agricultural_marketing.agricultural_marketing.doctype.invoice_form.invoice_form import build_pdf_template_context
 
@@ -25,15 +26,14 @@ def get_pdf(filters, template, doctype, orientation="Landscape"):
         frappe.throw(_("No template found for this doctype"))
 
     html_format = frappe.utils.get_html_format(paths_temp)
-
     res = build_pdf_template_context(filters)
 
-    context = {"data": res, "filters": filters}
+    context = {"data": res, "filters": filters, "lang": frappe.local.lang,
+               "layout_direction": "rtl" if (is_rtl()) else "ltr"}
     html = frappe.render_template(html_format, context)
 
-    # We do not use frappe's report_to_pdf function because it generates an access log with the actual PDF contents
-    # in the database. That's unnecessary in this case
     frappe.local.response.filename = f"{filters.get('reference_name')}.pdf"
     frappe.local.response.filecontent = _get_pdf(html, {"orientation": orientation,
                                                         "title": f"{filters.get('reference_name')}.pdf"})
     frappe.local.response.type = "pdf"
+    frappe.local.lang = "ar"

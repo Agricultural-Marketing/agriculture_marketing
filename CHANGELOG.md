@@ -16,7 +16,8 @@ to a section with the version name.
 
 ### Print invoice form
 
-* Choose to print invoice for the supplier or specific of customers.
+* Choose to print invoice for the supplier or specific customer/pamper.
+* Allow `rtl` direction in printing.
 
 ## 1.0.0
 
