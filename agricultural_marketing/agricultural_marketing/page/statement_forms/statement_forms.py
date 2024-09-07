@@ -4,16 +4,13 @@ import random
 
 import frappe
 from frappe import _
-from frappe.utils import getdate
+from frappe.utils import getdate, flt
 from frappe.utils.jinja_globals import is_rtl
 from frappe.utils.pdf import get_pdf as _get_pdf
-from erpnext.accounts.utils import get_balance_on
 from frappe.query_builder import Order
 
 
-# TODO: الكود محتاج يتروووووق و يتنضف
-
-
+# TODO: Cod need refactoring
 @frappe.whitelist()
 def get_reports(filters):
     data = frappe._dict()
@@ -23,12 +20,26 @@ def get_reports(filters):
 
     # Get Data
     data = get_data(data, filters)
+    if not data:
+        return {
+            "error": "No data matches the chosen criteria"
+        }
     html_format = get_html_format()
 
     for key, value in data.items():
-        header_details = get_header_data(key)
-        context = {"header": header_details, "items": value.get("items"), "payments": value.get("payments"),
-                   "filters": filters, "lang": frappe.local.lang, "layout_direction": "rtl" if is_rtl() else "ltr"}
+        # Get summary table data
+        party_summary = get_party_summary(filters=filters, party=key, pary_data=value)
+
+        header_details = get_header_data(filters.get("party_group"), key)
+        context = {
+            "header": header_details,
+            "summary": party_summary,
+            "items": value.get("items"),
+            "payments": value.get("payments"),
+            "filters": filters,
+            "lang": frappe.local.lang,
+            "layout_direction": "rtl" if is_rtl() else "ltr"
+        }
 
         html = frappe.render_template(html_format, context)
         content = _get_pdf(html, {"orientation": "Landscape"})
@@ -42,7 +53,9 @@ def get_reports(filters):
         file_doc.save(ignore_permissions=True)
         file_urls.append(file_doc.file_url)
 
-    return file_urls
+    return {
+        "file_urls": file_urls
+    }
 
 
 def get_data(data, filters):
@@ -65,18 +78,18 @@ def get_items_details(data, filters):
     invform = frappe.qb.DocType("Invoice Form")
     invformitem = frappe.qb.DocType("Invoice Form Item")
 
+    _filters = {"is_customer": 1} if filters.get("party_type") == "Customer" else {}
+    _field = invformitem.customer if filters.get("party_type") == "Customer" else invform.supplier
+
     items_query = frappe.qb.from_(invform).left_join(invformitem).on(
         invformitem.parent == invform.name).where(invform.company == filters.get('company'))
 
-    if filters.get("party_type") == "Customer":
-        _field = invformitem.customer
-        _filters = {"is_customer": 1}
-    elif filters.get("party_type") == "Supplier":
-        _field = invform.supplier
-        _filters = {}
-
     if filters.get('party'):
         parties = [filters.get('party')]
+    elif filters.get('party_group'):
+        party_group = "customer_group" if filters.get('party_type') == "Customer" else "supplier_group"
+        _filters[party_group] = filters.get('party_group')
+        parties = frappe.db.get_all(filters.get("party_type"), _filters, pluck="name")
     else:
         parties = frappe.db.get_all(filters.get("party_type"), _filters, pluck="name")
 
@@ -90,6 +103,8 @@ def get_items_details(data, filters):
 
     if filters.get("to_date"):
         items_query = items_query.where(invform.posting_date.lte(filters.get("to_date")))
+
+    items_query = items_query.where(invform.docstatus == 1)
 
     items_query = items_query.select(_field.as_("party"), invform.name.as_("invoice_id"),
                                      invform.posting_date.as_("date"), invformitem.qty, invformitem.price,
@@ -122,7 +137,7 @@ def get_items_details(data, filters):
                 total_commission = sum([it['commission'] for it in items])
                 tax_rate = get_tax_rate()
                 total_taxes = (total_commission * tax_rate) / 100
-                total_commission_with_taxes = total_commission - total_taxes
+                total_commission_with_taxes = total_commission + total_taxes
 
             items.append({
                 "date": _("Total Without Taxes"),
@@ -155,6 +170,10 @@ def get_payments_details(data, filters):
 
     if filters.get("party"):
         parties = [filters.get("party")]
+    elif filters.get("party_group"):
+        party_group = "customer_group" if filters.get('party_type') == "Customer" else "supplier_group"
+        _filters[party_group] = filters.get('party_group')
+        parties = frappe.db.get_all(filters.get("party_type"), _filters, pluck="name")
     else:
         parties = frappe.db.get_all(filters.get("party_type"), _filters, pluck="name")
 
@@ -167,6 +186,8 @@ def get_payments_details(data, filters):
 
     if filters.get("to_date"):
         payments_query = payments_query.where(entry.posting_date.lte(filters.get("to_date")))
+
+    payments_query = payments_query.where(entry.docstatus == 1)
 
     result = payments_query.select(entry.party, entry.name.as_("payment_id"), entry.posting_date.as_("date"),
                                    entry.mode_of_payment.as_("mop"), entry.payment_type, entry.remarks,
@@ -211,7 +232,82 @@ def get_tax_rate():
     return tax_rate
 
 
-def get_header_data(party):
+def get_header_data(party_group, party):
     return {
-        "party": party
+        "party": party,
+        "party_group": party_group
     }
+
+
+def get_party_summary(filters, party, pary_data):
+    party_summary = []
+    debit = 0
+    credit = 0
+    total_sales = 0
+    total_payments = 0
+    total_commission_with_taxes = 0
+    from_date = filters.get('from_date')
+    to_date = filters.get('to_date') or getdate()
+
+    gl_filters = {
+        "party_type": filters.get("party_type"),
+        "party": party,
+        "to_date": to_date
+    }
+
+    q = """
+                select name, debit, credit, posting_date
+                from `tabGL Entry`
+                where party_type=%(party_type)s and party=%(party)s 
+                and is_cancelled = 0
+                and (posting_date <= %(to_date)s or is_opening = 'Yes')
+            """
+    if from_date:
+        gl_filters["from_date"] = from_date
+        q += """ and (posting_date >= %(from_date)s or is_opening = 'Yes') """
+    gl_entries = frappe.db.sql(q, gl_filters, as_dict=True)
+
+    for gl in gl_entries:
+        debit += gl.debit
+        credit += gl.credit
+
+    if pary_data.get("items"):
+        total_sales = pary_data.get("items")[-1]['total']
+        if filters.get('party_type'):
+            total_commission_with_taxes = pary_data.get("items")[-1]['commission']
+
+    if pary_data.get("payments"):
+        total_payments = pary_data.get("payments")[-1]['paid_amount']
+
+    party_summary.append({
+        "statement": _("Opening Balance"),
+        "debit": debit or "0",
+        "credit": credit or "0",
+        "balance": flt(debit - credit) or "0"
+    })
+
+    party_summary.append({
+        "statement": _("Duration Selling"),
+        "debit": "0",
+        "credit": total_sales or "0"
+    })
+
+    party_summary.append({
+        "statement": _("Duration Commission"),
+        "debit": total_commission_with_taxes or "0",
+        "credit": "0"
+    })
+
+    party_summary.append({
+        "statement": _("Duration Payments"),
+        "debit": total_payments or "0",
+        "credit": "0"
+    })
+
+    party_summary.append({
+        "statement": _("Total"),
+        "debit": (total_commission_with_taxes + total_payments) or "0",
+        "credit": total_sales or "0",
+        "balance": ((total_commission_with_taxes + total_payments) - total_sales) or "0"
+    })
+    return party_summary

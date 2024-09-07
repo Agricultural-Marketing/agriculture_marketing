@@ -1,20 +1,69 @@
+{% set is_supplier=true %}
+{% if filters.party_type == "Supplier" %}
+    {% set is_supplier = true %}
+{% else %}
+    {% set is_supplier = false %}
+{% endif %}
 <html dir="{{ layout_direction }}" lang="{{ lang }}">
 <style>
 table, th, td{
   border: 1px solid black;
   border-collapse: collapse;
+  text-align: center;
+  margin-bottom: 50px;
 }
 </style>
 <body>
 <div class="row">
     <div class="col-xs-6">
-
-	<h4> {{ _("Customer Name") }} : {{ header.party }}</h4>
-    </div>
-    <div class="col-xs-6">
         <h4> {{ _("Company") }} :{{ filters.company }}</h4>
     </div>
+    <div class="col-xs-6">
+    	<h4> {% if is_supplier %}
+                {{ _("Supplier Name") }}
+            {% else %}
+                {{ _("Customer Name") }}
+            {% endif %} : {{header.party }}</h4>
+    </div>
+    {% if filters.party_group %}
+        <div class="col-xs-6">
+            <h4> {% if is_supplier %}
+                    {{ _("Supplier Group") }}
+                {% else %}
+                    {{ _("Customer Group") }}
+                {% endif %} : {{header.party_group }}</h4>
+        </div>
+    {% endif %}
 </div>
+<hr>
+
+{% if summary %}
+<!--Summary Table-->
+<div>
+    <h2> {{ _("Summary") }} </h2>
+</div>
+<table class="table" id="summary">
+    <thead>
+        <tr>
+            <th style="width: 10%"> {{ _("Statement") }} </th>
+            <th style="width: 25%"> {{ _("Debit") }} </th>
+            <th style="width: 10%"> {{ _("Credit") }} </th>
+            <th style="width: 8%"> {{ _("Balance") }} </th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for sum in summary %}
+            <tr>
+                <td> {{ sum.statement }} </td>
+                <td> {% if sum.debit %} {{ sum.debit }} {% endif %} </td>
+                <td> {% if sum.credit %} {{ sum.credit }} {% endif %} </td>
+                <td> {% if sum.balance %} {{ sum.balance }} {% endif %} </td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+<hr>
+{% endif %}
 
 {% if items %}
 <!--Items Details Table-->
@@ -51,7 +100,9 @@ table, th, td{
         {% endfor %}
     </tbody>
 </table>
+<hr>
 {% endif %}
+
 <!--Payments Table-->
 {% if payments %}
 <div>
@@ -82,5 +133,6 @@ table, th, td{
     </tbody>
 </table>
 {% endif %}
+
 </body>
 </html>
