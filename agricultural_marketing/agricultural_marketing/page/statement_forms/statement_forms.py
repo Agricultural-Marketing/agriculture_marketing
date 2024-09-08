@@ -8,6 +8,7 @@ from frappe.utils import getdate, flt
 from frappe.utils.jinja_globals import is_rtl
 from frappe.utils.pdf import get_pdf as _get_pdf
 from frappe.query_builder import Order
+from pypika import Case
 
 
 # TODO: Cod need refactoring
@@ -28,7 +29,8 @@ def get_reports(filters):
 
     for key, value in data.items():
         # Get summary table data
-        party_summary = get_party_summary(filters=filters, party=key, pary_data=value)
+        party_summary = get_party_summary(filters=filters, party_type=filters.get("party_type"), party=key,
+                                          party_data=value)
 
         header_details = get_header_data(filters.get("party_group"), key)
         context = {
@@ -189,9 +191,24 @@ def get_payments_details(data, filters):
 
     payments_query = payments_query.where(entry.docstatus == 1)
 
-    result = payments_query.select(entry.party, entry.name.as_("payment_id"), entry.posting_date.as_("date"),
-                                   entry.mode_of_payment.as_("mop"), entry.payment_type, entry.remarks,
-                                   entry.paid_amount).run(as_dict=True)
+    payments_query = payments_query.select(entry.party_type, entry.party, entry.name.as_("payment_id"),
+                                           entry.posting_date.as_("date"), entry.mode_of_payment.as_("mop"),
+                                           entry.payment_type, entry.remarks)
+
+    if filters.get("party_type") == "Supplier":
+        payments_query = payments_query.select(
+            Case().when(entry.payment_type == "Pay", entry.paid_amount).
+            when(entry.payment_type == "Receive", (entry.paid_amount * -1)).
+            else_(entry.paid_amount).as_("paid_amount")
+        )
+    elif filters.get("party_type") == "Customer":
+        payments_query = payments_query.select(
+            Case().when(entry.payment_type == "Receive", entry.paid_amount).
+            when(entry.payment_type == "Pay", (entry.paid_amount * -1)).
+            else_(entry.paid_amount).as_("paid_amount")
+        )
+
+    result = payments_query.run(as_dict=True)
 
     for row in result:
         party = row.get("party")
@@ -239,13 +256,37 @@ def get_header_data(party_group, party):
     }
 
 
-def get_party_summary(filters, party, pary_data):
+def get_party_summary(filters, party_type, party, party_data):
+    def update_balance(balance, debit, credit):
+        """Helper function to calculate and update the balance."""
+        return balance + flt(debit) - flt(credit)
+
+    def get_total_sales_and_commissions(data):
+        if data.get("items"):
+            return data["items"][-1].get("total", 0), data["items"][-1].get("commission", 0)
+        return 0, 0
+
+    def get_total_payments(data):
+        if data.get("payments"):
+            return data.get("payments")[-1].get('paid_amount', 0)
+        return 0
+
+    def append_summary(statement, debit, credit):
+        nonlocal last_balance
+        if switch_columns:
+            debit, credit = credit, debit
+
+        last_balance = update_balance(last_balance, debit, credit)
+        party_summary.append({
+            "statement": statement,
+            "debit": debit or str(debit),
+            "credit": credit or str(credit),
+            "balance": last_balance or str(last_balance)
+        })
+
+    switch_columns = True if party_type == "Customer" else False
     party_summary = []
-    debit = 0
-    credit = 0
-    total_sales = 0
-    total_payments = 0
-    total_commission_with_taxes = 0
+    debit, credit, last_balance = 0, 0, 0
     from_date = filters.get('from_date')
     to_date = filters.get('to_date') or getdate()
 
@@ -271,43 +312,32 @@ def get_party_summary(filters, party, pary_data):
         debit += gl.debit
         credit += gl.credit
 
-    if pary_data.get("items"):
-        total_sales = pary_data.get("items")[-1]['total']
-        if filters.get('party_type'):
-            total_commission_with_taxes = pary_data.get("items")[-1]['commission']
+    # Calculate totals
+    total_sales, total_commission_with_taxes = get_total_sales_and_commissions(party_data)
+    total_payments = get_total_payments(party_data)
+    last_balance = debit - credit
 
-    if pary_data.get("payments"):
-        total_payments = pary_data.get("payments")[-1]['paid_amount']
-
+    # Append Opening
     party_summary.append({
         "statement": _("Opening Balance"),
         "debit": debit or "0",
         "credit": credit or "0",
-        "balance": flt(debit - credit) or "0"
+        "balance": last_balance or "0"
     })
 
-    party_summary.append({
-        "statement": _("Duration Selling"),
-        "debit": "0",
-        "credit": total_sales or "0"
-    })
+    # Append Summaries
+    append_summary(_("Duration Selling"), 0, total_sales)
+    append_summary(_("Duration Commission"), total_commission_with_taxes, 0)
+    append_summary(_("Duration Payments"), total_payments, 0)
 
-    party_summary.append({
-        "statement": _("Duration Commission"),
-        "debit": total_commission_with_taxes or "0",
-        "credit": "0"
-    })
-
-    party_summary.append({
-        "statement": _("Duration Payments"),
-        "debit": total_payments or "0",
-        "credit": "0"
-    })
-
+    # Calculate and append closing
+    total_debit = total_commission_with_taxes + total_payments + debit
+    total_credit = total_sales + credit
     party_summary.append({
         "statement": _("Total"),
-        "debit": (total_commission_with_taxes + total_payments) or "0",
-        "credit": total_sales or "0",
-        "balance": ((total_commission_with_taxes + total_payments) - total_sales) or "0"
+        "debit": total_debit,
+        "credit": total_credit,
+        "balance": (total_debit - total_credit) or "0"
     })
+
     return party_summary
