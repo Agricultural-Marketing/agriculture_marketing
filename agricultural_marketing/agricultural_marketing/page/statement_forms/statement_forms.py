@@ -11,7 +11,6 @@ from frappe.query_builder import Order
 from pypika import Case
 
 
-# TODO: Cod need refactoring
 @frappe.whitelist()
 def get_reports(filters):
     data = frappe._dict()
@@ -79,87 +78,29 @@ def get_html_format():
 def get_items_details(data, filters):
     invform = frappe.qb.DocType("Invoice Form")
     invformitem = frappe.qb.DocType("Invoice Form Item")
-
-    _filters = {"is_customer": 1} if filters.get("party_type") == "Customer" else {}
-    _field = invformitem.customer if filters.get("party_type") == "Customer" else invform.supplier
-
     items_query = frappe.qb.from_(invform).left_join(invformitem).on(
         invformitem.parent == invform.name).where(invform.company == filters.get('company'))
 
-    if filters.get('party'):
-        parties = [filters.get('party')]
-    elif filters.get('party_group'):
-        party_group = "customer_group" if filters.get('party_type') == "Customer" else "supplier_group"
-        _filters[party_group] = filters.get('party_group')
-        parties = frappe.db.get_all(filters.get("party_type"), _filters, pluck="name")
-    else:
-        parties = frappe.db.get_all(filters.get("party_type"), _filters, pluck="name")
-
+    # Determine and apply party filters based on party type
+    _filters = {"is_customer": 1} if filters.get("party_type") == "Customer" else {}
+    _field = invformitem.customer if filters.get("party_type") == "Customer" else invform.supplier
+    parties = get_parties(filters, _filters)
     items_query = items_query.where(_field.isin(parties))
 
-    if filters.get("from_date") and filters.get("to_date") and (filters.get("to_date") < filters.get("from_date")):
-        frappe.throw(_("To date must be after from date"))
+    # validate and apply dates filters
+    validate_and_apply_date_filters(filters, items_query, invform)
 
-    if filters.get("from_date"):
-        items_query = items_query.where(invform.posting_date.gte(filters.get("from_date")))
-
-    if filters.get("to_date"):
-        items_query = items_query.where(invform.posting_date.lte(filters.get("to_date")))
-
+    # Filter for submitted (docstatus 1) invoice forms
     items_query = items_query.where(invform.docstatus == 1)
 
-    items_query = items_query.select(_field.as_("party"), invform.name.as_("invoice_id"),
-                                     invform.posting_date.as_("date"), invformitem.qty, invformitem.price,
-                                     invformitem.total, invformitem.item_name)
-
-    if filters.get("party_type") == "Supplier":
-        items_query = items_query.select(invformitem.commission)
+    # Select relative fields based on party type
+    items_query = select_fields_for_invoices(filters, items_query, _field, invform, invformitem)
 
     result = items_query.orderby(_field, invform.posting_date, order=Order.desc).run(as_dict=True)
 
-    for row in result:
-        party = row.get("party")
-        row.pop("party")
-        if party in data:
-            data[party]["items"].append(row)
-        else:
-            data[party] = {}
-            data[party]["items"] = [row]
-
-    # Getting Totals
-    for key, value in data.items():
-        for i, items in value.items():
-            total_commission = 0
-            total_taxes = 0
-            total_commission_with_taxes = 0
-            total_qty = sum([it['qty'] for it in items])
-            total_before_tax = sum([it['total'] for it in items])
-
-            if filters.get("party_type") == "Supplier":
-                total_commission = sum([it['commission'] for it in items])
-                tax_rate = get_tax_rate()
-                total_taxes = (total_commission * tax_rate) / 100
-                total_commission_with_taxes = total_commission + total_taxes
-
-            items.append({
-                "date": _("Total Without Taxes"),
-                "qty": total_qty,
-                "total": total_before_tax,
-                "commission": total_commission
-            })
-
-            if total_taxes:
-                items.append({
-                    "date": _("Taxes"),
-                    "commission": total_taxes
-                })
-
-            items.append({
-                "date": _("Total with Taxes"),
-                "qty": total_qty,
-                "total": total_before_tax,
-                "commission": total_commission_with_taxes
-            })
+    if result:
+        # Construct result, appending to final data nad appending totals
+        process_result_and_totals_for_invoices(result, data, filters)
 
     return data
 
@@ -168,71 +109,24 @@ def get_payments_details(data, filters):
     entry = frappe.qb.DocType("Payment Entry")
     payments_query = frappe.qb.from_(entry).where(entry.company == filters.get('company'))
 
+    # Determine and apply party filters based on party type
     _filters = {"is_customer": 1} if filters.get("party_type") == "Customer" else {}
-
-    if filters.get("party"):
-        parties = [filters.get("party")]
-    elif filters.get("party_group"):
-        party_group = "customer_group" if filters.get('party_type') == "Customer" else "supplier_group"
-        _filters[party_group] = filters.get('party_group')
-        parties = frappe.db.get_all(filters.get("party_type"), _filters, pluck="name")
-    else:
-        parties = frappe.db.get_all(filters.get("party_type"), _filters, pluck="name")
-
+    parties = get_parties(filters, _filters)
     payments_query = payments_query.where(entry.party.isin(parties))
-    if filters.get("from_date") and filters.get("to_date") and (filters.get("to_date") < filters.get("from_date")):
-        frappe.throw(_("To date must be after from date"))
 
-    if filters.get("from_date"):
-        payments_query = payments_query.where(entry.posting_date.gte(filters.get("from_date")))
-
-    if filters.get("to_date"):
-        payments_query = payments_query.where(entry.posting_date.lte(filters.get("to_date")))
-
+    # Validate and apply dates filters
+    validate_and_apply_date_filters(filters, payments_query, entry)
+    # Filter for submitted (docstatus 1) payment entries
     payments_query = payments_query.where(entry.docstatus == 1)
 
-    payments_query = payments_query.select(entry.party_type, entry.party, entry.name.as_("payment_id"),
-                                           entry.posting_date.as_("date"), entry.mode_of_payment.as_("mop"),
-                                           entry.payment_type, entry.remarks)
-
-    if filters.get("party_type") == "Supplier":
-        payments_query = payments_query.select(
-            Case().when(entry.payment_type == "Pay", entry.paid_amount).
-            when(entry.payment_type == "Receive", (entry.paid_amount * -1)).
-            else_(entry.paid_amount).as_("paid_amount")
-        )
-    elif filters.get("party_type") == "Customer":
-        payments_query = payments_query.select(
-            Case().when(entry.payment_type == "Receive", entry.paid_amount).
-            when(entry.payment_type == "Pay", (entry.paid_amount * -1)).
-            else_(entry.paid_amount).as_("paid_amount")
-        )
+    # Select relative fields base on party type
+    payments_query = select_fields_for_payment(filters, payments_query, entry)
 
     result = payments_query.run(as_dict=True)
 
-    for row in result:
-        party = row.get("party")
-        row.pop("party")
-        if party in data:
-            if data[party].get("payments"):
-                data[party]["payments"].append(row)
-            else:
-                data[party]["payments"] = {}
-                data[party]["payments"] = [row]
-        else:
-            data[party] = {}
-            data[party]["payments"] = [row]
-
-    # Getting Total
     if result:
-        for key, value in data.items():
-            for i, payments in value.items():
-                if i == "payments":
-                    total_amount = sum([p['paid_amount'] for p in payments]) or 0
-                    payments.append({
-                        "date": _("Grand Total"),
-                        "paid_amount": total_amount
-                    })
+        # Construct result, appending to final data nad appending totals
+        process_result_and_totals_for_payments(result, data)
 
     return data
 
@@ -279,9 +173,9 @@ def get_party_summary(filters, party_type, party, party_data):
         last_balance = update_balance(last_balance, debit, credit)
         party_summary.append({
             "statement": statement,
-            "debit": debit or str(debit),
-            "credit": credit or str(credit),
-            "balance": last_balance or str(last_balance)
+            "debit": flt(debit, 2) or str(debit),
+            "credit": flt(credit, 2) or str(credit),
+            "balance": flt(last_balance, 2) or str(last_balance)
         })
 
     switch_columns = True if party_type == "Customer" else False
@@ -296,16 +190,24 @@ def get_party_summary(filters, party_type, party, party_data):
         "to_date": to_date
     }
 
-    q = """
-                select name, debit, credit, posting_date
-                from `tabGL Entry`
-                where party_type=%(party_type)s and party=%(party)s 
-                and is_cancelled = 0
-                and (posting_date <= %(to_date)s or is_opening = 'Yes')
-            """
+    q = """ 
+            SELECT 
+                name, debit, credit, posting_date
+            FROM 
+                `tabGL Entry`
+            WHERE 
+                party_type=%(party_type)s 
+            AND 
+                party=%(party)s 
+            AND 
+                is_cancelled = 0
+            AND 
+                (posting_date <= %(to_date)s OR is_opening = 'Yes') 
+        """
     if from_date:
         gl_filters["from_date"] = from_date
-        q += """ and (posting_date >= %(from_date)s or is_opening = 'Yes') """
+        q += """ AND (posting_date >= %(from_date)s OR is_opening = 'Yes') """
+
     gl_entries = frappe.db.sql(q, gl_filters, as_dict=True)
 
     for gl in gl_entries:
@@ -320,9 +222,9 @@ def get_party_summary(filters, party_type, party, party_data):
     # Append Opening
     party_summary.append({
         "statement": _("Opening Balance"),
-        "debit": debit or "0",
-        "credit": credit or "0",
-        "balance": last_balance or "0"
+        "debit": flt(debit, 2) or "0",
+        "credit": flt(credit, 2) or "0",
+        "balance": flt(last_balance, 2) or "0"
     })
 
     # Append Summaries
@@ -335,9 +237,140 @@ def get_party_summary(filters, party_type, party, party_data):
     total_credit = total_sales + credit
     party_summary.append({
         "statement": _("Total"),
-        "debit": total_debit,
-        "credit": total_credit,
-        "balance": (total_debit - total_credit) or "0"
+        "debit": flt(total_debit, 2),
+        "credit": flt(total_credit, 2),
+        "balance": flt(total_debit - total_credit, 2) or "0"
     })
 
     return party_summary
+
+
+def get_parties(filters, _filters):
+    if filters.get("party"):
+        parties = [filters.get("party")]
+    elif filters.get("party_group"):
+        party_group = "customer_group" if filters.get('party_type') == "Customer" else "supplier_group"
+        _filters[party_group] = filters.get('party_group')
+        parties = frappe.db.get_all(filters.get("party_type"), _filters, pluck="name")
+    else:
+        parties = frappe.db.get_all(filters.get("party_type"), _filters, pluck="name")
+
+    return parties
+
+
+def validate_and_apply_date_filters(filters, query, doctype):
+    if filters.get("from_date") and filters.get("to_date") and (filters.get("to_date") < filters.get("from_date")):
+        frappe.throw(_("To date must be after from date"))
+
+    if filters.get("from_date"):
+        query = query.where(doctype.posting_date.gte(filters.get("from_date")))
+
+    if filters.get("to_date"):
+        query = query.where(doctype.posting_date.lte(filters.get("to_date")))
+
+
+def select_fields_for_invoices(filters, items_query, _field, invform, invformitem):
+    items_query = items_query.select(_field.as_("party"), invform.name.as_("invoice_id"),
+                                     invform.posting_date.as_("date"), invformitem.qty, invformitem.price,
+                                     invformitem.total, invformitem.item_name)
+
+    if filters.get("party_type") == "Supplier":
+        items_query = items_query.select(invformitem.commission)
+
+    return items_query
+
+
+def process_result_and_totals_for_invoices(result, data, filters):
+    def calculate_totals(items):
+        """Calculate the total quantities, before tax, commission, and taxes."""
+        total_qty = sum([it['qty'] for it in items])
+        total_before_tax = sum([it['total'] for it in items])
+        total_commission = sum([it['commission'] for it in items]) if filters.get("party_type") == "Supplier" else 0
+        total_taxes = (total_commission * get_tax_rate()) / 100 if total_commission else 0
+        total_commission_with_taxes = total_commission + total_taxes
+        return total_qty, total_before_tax, total_commission, total_taxes, total_commission_with_taxes
+
+    for row in result:
+        party = row.pop("party")  # Extract and remove party from the row
+        data.setdefault(party, {}).setdefault("items", []).append(row)
+
+    for party_data in data.values():
+        items = party_data.get("items", [])
+        if items:
+            total_qty, total_before_tax, total_commission, total_taxes, total_commission_with_taxes = calculate_totals(
+                items)
+
+            # Append summary rows for totals
+            append_totals(items, total_qty, total_before_tax, total_commission, total_taxes,
+                          total_commission_with_taxes)
+
+
+def append_totals(items, total_qty, total_before_tax, total_commission, total_taxes, total_commission_with_taxes):
+    items.append({
+        "date": _("Total Without Taxes"),
+        "qty": total_qty,
+        "total": total_before_tax,
+        "commission": total_commission
+    })
+
+    if total_taxes:
+        items.append({
+            "date": _("Taxes"),
+            "commission": total_taxes
+        })
+
+    items.append({
+        "date": _("Total with Taxes"),
+        "qty": total_qty,
+        "total": total_before_tax,
+        "commission": total_commission_with_taxes
+    })
+
+
+def select_fields_for_payment(filters, payments_query, entry):
+    payments_query = payments_query.select(entry.party_type, entry.party, entry.name.as_("payment_id"),
+                                           entry.posting_date.as_("date"), entry.mode_of_payment.as_("mop"),
+                                           entry.payment_type, entry.remarks)
+
+    # Conditionally select paid amount based on party type and payment type
+    if filters.get("party_type") == "Supplier":
+        payments_query = payments_query.select(
+            Case().when(entry.payment_type == "Pay", entry.paid_amount).
+            when(entry.payment_type == "Receive", (entry.paid_amount * -1)).
+            else_(entry.paid_amount).as_("paid_amount")
+        )
+    elif filters.get("party_type") == "Customer":
+        payments_query = payments_query.select(
+            Case().when(entry.payment_type == "Receive", entry.paid_amount).
+            when(entry.payment_type == "Pay", (entry.paid_amount * -1)).
+            else_(entry.paid_amount).as_("paid_amount")
+        )
+
+    return payments_query
+
+
+def process_result_and_totals_for_payments(result, data):
+    def append_to_date(party, row):
+        """Append payment row to the desired party in data"""
+        if party not in data:
+            data[party] = {"payments": []}
+        data.setdefault(party, {}).setdefault("payments", []).append(row)
+
+    def calculate_grand_total(payments):
+        """Calculate the total paid amount"""
+        total_amount = sum(p.get('paid_amount', 0) for p in payments)
+        payments.append({
+            "date": _("Grand Total"),
+            "paid_amount": total_amount
+        })
+
+    for row in result:
+        party = row.pop("party", None)
+        if party:
+            append_to_date(party, row)
+
+    # Calculate and append grand total for each party
+    for party_data in data.values():
+        payments = party_data.get("payments", [])
+        if payments:
+            calculate_grand_total(payments)
