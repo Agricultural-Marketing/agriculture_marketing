@@ -217,6 +217,9 @@ def get_party_summary(filters, party_type, party, party_data):
     # Calculate totals
     total_sales, total_commission_with_taxes = get_total_sales_and_commissions(party_data)
     total_payments = get_total_payments(party_data)
+
+    if switch_columns:
+        debit, credit = credit, debit
     last_balance = debit - credit
 
     # Append Opening
@@ -235,6 +238,9 @@ def get_party_summary(filters, party_type, party, party_data):
     # Calculate and append closing
     total_debit = total_commission_with_taxes + total_payments + debit
     total_credit = total_sales + credit
+    if switch_columns:
+        total_debit, total_credit = total_credit, total_debit
+
     party_summary.append({
         "statement": _("Total"),
         "debit": flt(total_debit, 2),
