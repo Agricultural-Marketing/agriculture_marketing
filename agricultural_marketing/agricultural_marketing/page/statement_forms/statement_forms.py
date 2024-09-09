@@ -88,7 +88,7 @@ def get_items_details(data, filters):
     items_query = items_query.where(_field.isin(parties))
 
     # validate and apply dates filters
-    validate_and_apply_date_filters(filters, items_query, invform)
+    items_query = validate_and_apply_date_filters(filters, items_query, invform)
 
     # Filter for submitted (docstatus 1) invoice forms
     items_query = items_query.where(invform.docstatus == 1)
@@ -115,7 +115,8 @@ def get_payments_details(data, filters):
     payments_query = payments_query.where(entry.party.isin(parties))
 
     # Validate and apply dates filters
-    validate_and_apply_date_filters(filters, payments_query, entry)
+    payments_query = validate_and_apply_date_filters(filters, payments_query, entry)
+
     # Filter for submitted (docstatus 1) payment entries
     payments_query = payments_query.where(entry.docstatus == 1)
 
@@ -182,12 +183,11 @@ def get_party_summary(filters, party_type, party, party_data):
     party_summary = []
     debit, credit, last_balance = 0, 0, 0
     from_date = filters.get('from_date')
-    to_date = filters.get('to_date') or getdate()
 
     gl_filters = {
         "party_type": filters.get("party_type"),
         "party": party,
-        "to_date": to_date
+        "from_date": from_date
     }
 
     q = """ 
@@ -202,11 +202,8 @@ def get_party_summary(filters, party_type, party, party_data):
             AND 
                 is_cancelled = 0
             AND 
-                (posting_date <= %(to_date)s OR is_opening = 'Yes') 
+            (posting_date < %(from_date)s OR is_opening = 'Yes')
         """
-    if from_date:
-        gl_filters["from_date"] = from_date
-        q += """ AND (posting_date >= %(from_date)s OR is_opening = 'Yes') """
 
     gl_entries = frappe.db.sql(q, gl_filters, as_dict=True)
 
@@ -217,10 +214,11 @@ def get_party_summary(filters, party_type, party, party_data):
     # Calculate totals
     total_sales, total_commission_with_taxes = get_total_sales_and_commissions(party_data)
     total_payments = get_total_payments(party_data)
-
-    if switch_columns:
-        debit, credit = credit, debit
     last_balance = debit - credit
+
+    if not filters.get("calculate_opening_balance_with_totals", False):
+        debit = abs(last_balance) if debit > credit else 0
+        credit = abs(last_balance) if credit > debit else 0
 
     # Append Opening
     party_summary.append({
@@ -243,8 +241,8 @@ def get_party_summary(filters, party_type, party, party_data):
 
     party_summary.append({
         "statement": _("Total"),
-        "debit": flt(total_debit, 2),
-        "credit": flt(total_credit, 2),
+        "debit": flt(total_debit, 2) or "0",
+        "credit": flt(total_credit, 2) or "0",
         "balance": flt(total_debit - total_credit, 2) or "0"
     })
 
@@ -273,6 +271,8 @@ def validate_and_apply_date_filters(filters, query, doctype):
 
     if filters.get("to_date"):
         query = query.where(doctype.posting_date.lte(filters.get("to_date")))
+
+    return query
 
 
 def select_fields_for_invoices(filters, items_query, _field, invform, invformitem):

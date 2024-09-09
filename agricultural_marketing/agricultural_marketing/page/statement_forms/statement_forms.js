@@ -5,11 +5,24 @@ frappe.pages['statement-forms'].on_page_load = function(wrapper) {
 		single_column: true
 	});
 
+	let openingApproach = page.add_field({
+	    label: 'Calculate Opening Balance with Totals',
+	    fieldtype: 'Check',
+	    fieldname: 'calculate_opening_balance_with_totals',
+	    default: frappe.db.get_single_value("Agriculture Settings", "calculate_opening_balance_with_totals").then(
+	    (value) => {
+	        openingApproach.set_value(value);
+	    })
+	});
+    openingApproach.$wrapper.addClass('col-md-12');
+
     let company = page.add_field({
 	    label: 'Company',
 	    fieldtype: 'Link',
 	    fieldname: 'company',
-	    default: frappe.defaults.get_default('company')
+	    options: 'Company',
+	    reqd: 1,
+	    default: frappe.defaults.get_default('company'),
 	});
     company.$wrapper.removeClass('col-md-2').addClass('col-md-4');
 
@@ -17,10 +30,8 @@ frappe.pages['statement-forms'].on_page_load = function(wrapper) {
 	    label: 'From Date',
 	    fieldtype: 'Date',
 	    fieldname: 'from_date',
-        change() {
-            if (!fromDate.get_value())
-    	        fromDate.set_value('');
-	    }
+	    reqd: 1,
+        default: erpnext.utils.get_fiscal_year(frappe.datetime.get_today(), true)[1]
 	});
     fromDate.$wrapper.removeClass('col-md-2').addClass('col-md-4');
 
@@ -29,13 +40,15 @@ frappe.pages['statement-forms'].on_page_load = function(wrapper) {
         // Check if the field is empty
         if (!fromDate.get_value()) {
             fromDate.value = '';
+            fromDate.$wrapper.addClass('has-error');
         }
     });
 
 	let toDate = page.add_field({
 	    label: 'To Date',
 	    fieldtype: 'Date',
-	    fieldname: 'to_date'
+	    fieldname: 'to_date',
+	    default: frappe.datetime.get_today()
 	});
     toDate.$wrapper.removeClass('col-md-2').addClass('col-md-4');
 
@@ -135,10 +148,7 @@ frappe.pages['statement-forms'].on_page_load = function(wrapper) {
         for (let key in filters) {
             final_filters[key] = filters[key].value;
         }
-        if (!final_filters['party_type']) {
-            frappe.dom.unfreeze();
-            frappe.throw(__('Party Type is required'));
-        }
+        validateMandatoryFilters(final_filters);
         frappe.call({
             method: 'agricultural_marketing.agricultural_marketing.page.statement_forms.statement_forms.get_reports',
             args : {
@@ -169,6 +179,28 @@ frappe.pages['statement-forms'].on_page_load = function(wrapper) {
                 });
                 setTimeout(resolve, 2000);  // Wait for 2 second before downloading the next file
             });
+        }
+    }
+
+    function validateMandatoryFilters(filters) {
+        error = [];
+        if (!filters['company']) {
+            frappe.dom.unfreeze();
+            error.push(__('Company'))
+        }
+        if (!filters['from_date']) {
+            frappe.dom.unfreeze();
+            error.push(__('From Date'))
+        }
+        if (!filters['party_type']) {
+            frappe.dom.unfreeze();
+            error.push(__('Party Type'))
+        }
+        if (error.length) {
+            frappe.throw({
+                title: __('Missing Filters'),
+                message: __('Missing Filters') + '<br><ul><li>' + error.join('</li><li>') + '</ul>'
+            })
         }
     }
     let $btn = page.set_primary_action( __('Download Reports'), () => { get_reports(page.fields_dict) });
