@@ -7,6 +7,9 @@ Add changes to the "Unreleased Changes" section. Once you create a version (and 
 to a section with the version name.
 
 ## Unreleased Changes
+
+## 1.1.0
+
 ### Statement forms page
 
 * Custom page to handle downloading reports based on applied filters.
