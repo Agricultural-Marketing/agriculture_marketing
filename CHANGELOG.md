@@ -7,6 +7,13 @@ Add changes to the "Unreleased Changes" section. Once you create a version (and 
 to a section with the version name.
 
 ## Unreleased Changes
+### Statement forms page
+
+* Custom page to handle downloading reports based on applied filters.
+* Support multiple pdf downloading.
+* Generating a report for each customer/supplier 
+* with the balance summary and invoices and payments  details
+
 ### Reports
 
 * Items list suppliers invoices.
