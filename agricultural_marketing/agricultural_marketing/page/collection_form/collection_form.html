@@ -1,0 +1,64 @@
+{% set is_supplier=true %}
+{% if filters.party_type == "Supplier" %}
+    {% set is_supplier = true %}
+{% else %}
+    {% set is_supplier = false %}
+{% endif %}
+<html dir="{{ layout_direction }}" lang="{{ lang }}">
+<style>
+table, th, td{
+  border: 2px solid black;
+  border-collapse: collapse;
+  text-align: center;
+  margin-bottom: 15px;
+}
+.summary-table {
+    margin-left: 20%;
+    margin-right: 20%;
+    font-size: 14px;
+}
+</style>
+<body>
+<div class="row">
+    <div class="col-xs-6">
+        <h4> {{ _("Company") }} :{{ filters.company }}</h4>
+    </div>
+</div>
+<hr>
+
+{% if data %}
+<!--Summary Table-->
+{% for party in data %}
+    {% set party_data = data[party] %}
+<table class="table summary-table" id="summary">
+    <thead>
+    <tr> <th colspan="5">
+           {% if is_supplier %} {{ _(" Supplier Name") }} {% else %} {{ _("Customer Name") }} {% endif %} : {{ party }}
+    </th> </tr>
+        <tr>
+            <th style="width: 25%"> {{ _("Reference") }} </th>
+            <th style="width: 13%"> {{ _("Date") }} </th>
+            <th style="width: 8%"> {{ _("Debit") }} </th>
+            <th style="width: 8%"> {{ _("Credit") }} </th>
+            <th style="width: 25%"> {{ _("Statement") }} </th>
+        </tr>
+    </thead>
+    <tbody>
+        {% if party_data %}
+            {% for item in party_data %}
+                <tr>
+                    <td> {{ item.reference_id }} </td>
+                    <td> {% if item.date %} {{ item.date }} {% endif %} </td>
+                    <td> {% if item.debit %} {{ item.debit }} {% endif %} </td>
+                    <td> {% if item.credit %} {{ item.credit }} {% endif %} </td>
+                    <td> {{ item.statement }} </td>
+                </tr>
+            {% endfor %}
+        {% endif %}
+    </tbody>
+</table>
+<hr>
+{% endfor %}
+{% endif %}
+</body>
+</html>
