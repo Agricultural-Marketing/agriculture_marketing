@@ -21,17 +21,18 @@ table, th, td{
 <body>
 
 <!--Company Details-->
+{% if company_defaults %}
 <table class="header-details" style="border:none;">
     <tbody>
         <tr style="border:none;">
             <td style="border:none; width:40%; text-align:center">
                 {{ filters.company }} <br>
-                {{ frappe.utils.strip_html(company_defaults['address']) }} <br>
-                {{ company_defaults['phone_no'] }}
+                {{ frappe.utils.strip_html(company_defaults.address) }} <br>
+                {{ company_defaults.phone_no }}
             </td>
             <td style="border:none; width:35%;">
-                {% if company_defaults['image'] %}
-                <img src="{{ company_defaults['image'] }}" style="width:60px; height:60px"/>
+                {% if company_defaults.image %}
+                <img src="{{ company_defaults.image }}" style="width:60px; height:60px"/>
                 {% endif %}
             </td>
             <td style="border:none; width:25%; text-align: center">
@@ -41,6 +42,7 @@ table, th, td{
         </tr>
     </tbody>
 </table>
+{% endif %}
 <hr>
 
 {% if data %}
