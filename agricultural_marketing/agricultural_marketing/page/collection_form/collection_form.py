@@ -10,6 +10,7 @@ from frappe.utils.pdf import get_pdf as _get_pdf
 from frappe.query_builder import Order
 from pypika import Case
 from pypika.terms import Term
+from frappe.contacts.doctype.address.address import get_company_address
 
 
 @frappe.whitelist()
@@ -21,9 +22,14 @@ def execute(filters):
 
     # Get Data
     data = get_data(data, filters)
+    company_defaults = frappe.get_doc("Company", filters.get('company')).as_dict()
+    company_defaults["address"] = get_company_address(company_defaults['name']).get("company_address_display")
+    company_defaults["image"] = frappe.db.get_value("File", {"attached_to_name": company_defaults['name']},
+                                                    "file_url")
     html_format = get_html_format()
 
     context = {
+        "company_defaults": company_defaults,
         "data": data,
         "filters": filters,
         "lang": frappe.local.lang,
