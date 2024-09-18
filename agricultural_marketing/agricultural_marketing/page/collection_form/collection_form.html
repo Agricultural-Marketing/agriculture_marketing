@@ -24,7 +24,7 @@ table, th, td{
 <!--Company Details-->
 {% if letter_head %}
 <div>
-    <img src="{{ letter_head.image }}"/>
+    {{ letter_head.content }}
 </div>
 {% else %}
     {% if company_defaults %}
