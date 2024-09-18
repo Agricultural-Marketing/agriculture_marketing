@@ -23,12 +23,18 @@ def execute(filters):
     # Get Data
     data = get_data(data, filters)
     company_defaults = frappe.get_doc("Company", filters.get('company')).as_dict()
+    letter_head = None
+    default_letter_head = company_defaults["default_letter_head"]
+    if default_letter_head:
+        letter_head = frappe.get_doc("Letter Head", default_letter_head)
+
     company_defaults["address"] = get_company_address(company_defaults['name']).get("company_address_display")
     company_defaults["image"] = frappe.db.get_value("File", {"attached_to_name": company_defaults['name']},
                                                     "file_url")
     html_format = get_html_format()
 
     context = {
+        "letter_head": letter_head,
         "company_defaults": company_defaults,
         "data": data,
         "filters": filters,
@@ -37,7 +43,7 @@ def execute(filters):
     }
 
     html = frappe.render_template(html_format, context)
-    content = _get_pdf(html, {"orientation": "Landscape"})
+    content = _get_pdf(html, {"orientation": "Portrait"})
     file_name = "{0}-{1}.pdf".format("collection-form", str(random.randint(1000, 9999)))
     file_doc = frappe.new_doc("File")
     file_doc.update({

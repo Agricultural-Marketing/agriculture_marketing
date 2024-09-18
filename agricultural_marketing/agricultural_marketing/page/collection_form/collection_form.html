@@ -13,35 +13,42 @@ table, th, td{
   margin-bottom: 15px;
 }
 .summary-table {
-    margin-left: 10%;
-    margin-right: 10%;
+    width: 70%;
+    margin-left: auto;
+    margin-right: auto;
     font-size: 14px;
 }
 </style>
 <body>
 
 <!--Company Details-->
-{% if company_defaults %}
-<table class="header-details" style="border:none;">
-    <tbody>
-        <tr style="border:none;">
-            <td style="border:none; width:40%; text-align:center">
-                {{ filters.company }} <br>
-                {{ frappe.utils.strip_html(company_defaults.address) }} <br>
-                {{ company_defaults.phone_no }}
-            </td>
-            <td style="border:none; width:35%;">
-                {% if company_defaults.image %}
-                <img src="{{ company_defaults.image }}" style="width:60px; height:60px"/>
-                {% endif %}
-            </td>
-            <td style="border:none; width:25%; text-align: center">
-                {{ _("Printed Date") }} :{{ frappe.utils.getdate(frappe.utils.nowdate()) }} <br>
-                {{ _("Printed Time") }} :{{ frappe.utils.get_time_str(frappe.utils.now()) }}
-            </td>
-        </tr>
-    </tbody>
-</table>
+{% if letter_head %}
+<div>
+    <img src="{{ letter_head.image }}"/>
+</div>
+{% else %}
+    {% if company_defaults %}
+    <table class="header-details" style="border:none;">
+        <tbody>
+            <tr style="border:none;">
+                <td style="border:none; width:40%; text-align:center">
+                    {{ filters.company }} <br>
+                    {{ frappe.utils.strip_html(company_defaults.address) }} <br>
+                    {{ company_defaults.phone_no }}
+                </td>
+                <td style="border:none; width:35%;">
+                    {% if company_defaults.image %}
+                    <img src="{{ company_defaults.image }}" style="width:60px; height:60px"/>
+                    {% endif %}
+                </td>
+                <td style="border:none; width:25%; text-align: center">
+                    {{ _("Printed Date") }} :{{ frappe.utils.getdate(frappe.utils.nowdate()) }} <br>
+                    {{ _("Printed Time") }} :{{ frappe.utils.get_time_str(frappe.utils.now()) }}
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    {% endif %}
 {% endif %}
 <hr>
 
