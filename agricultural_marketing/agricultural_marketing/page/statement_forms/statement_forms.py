@@ -15,8 +15,13 @@ from pypika import Case
 def get_reports(filters):
     data = frappe._dict()
     file_urls = []
+    letter_head = None
     if isinstance(filters, str):
         filters = json.loads(filters)
+
+    default_letter_head = frappe.get_value("Company", filters.get("company"), "default_letter_head")
+    if default_letter_head:
+        letter_head = frappe.get_doc("Letter Head", default_letter_head)
 
     # Get Data
     data = get_data(data, filters)
@@ -33,6 +38,7 @@ def get_reports(filters):
 
         header_details = get_header_data(filters.get("party_group"), key)
         context = {
+            "letter_head": letter_head,
             "header": header_details,
             "summary": party_summary,
             "items": value.get("items"),
@@ -43,7 +49,7 @@ def get_reports(filters):
         }
 
         html = frappe.render_template(html_format, context)
-        content = _get_pdf(html, {"orientation": "Landscape"})
+        content = _get_pdf(html, {"orientation": "Portrait"})
         file_name = "{0}-{1}.pdf".format(key, str(random.randint(1000, 9999)))
         file_doc = frappe.new_doc("File")
         file_doc.update({
