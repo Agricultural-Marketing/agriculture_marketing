@@ -27,10 +27,10 @@ def execute(filters):
     default_letter_head = company_defaults["default_letter_head"]
     if default_letter_head:
         letter_head = frappe.get_doc("Letter Head", default_letter_head)
-
-    company_defaults["address"] = get_company_address(company_defaults['name']).get("company_address_display")
-    company_defaults["image"] = frappe.db.get_value("File", {"attached_to_name": company_defaults['name']},
-                                                    "file_url")
+    else:
+        company_defaults["address"] = get_company_address(company_defaults['name']).get("company_address_display")
+        company_defaults["image"] = frappe.db.get_value("File", {"attached_to_name": company_defaults['name']},
+                                                        "file_url")
     html_format = get_html_format()
 
     context = {
@@ -143,15 +143,18 @@ def get_header_data(party_group, party):
 
 
 def get_party_summary(filters, party_type, data):
-    def append_summary(reference_id, date, statement, debit, credit):
+    def append_summary(doctype, reference_id, date, qty, price, item_name, debit, credit):
         nonlocal last_balance
         if switch_columns:
             debit, credit = credit, debit
 
         final_data[party].append({
+            "doctype": doctype,
             "reference_id": reference_id,
             "date": date,
-            "statement": statement,
+            "qty": qty,
+            "price": price,
+            "item_name": item_name,
             "debit": flt(debit, 2) or str(debit),
             "credit": flt(credit, 2) or str(credit)
         })
@@ -195,23 +198,26 @@ def get_party_summary(filters, party_type, data):
 
         # Append Opening
         final_data.setdefault(party, []).append({
+            "doctype": "",
             "reference_id": _("Opening Balance"),
-            "statement": _("Previous Balance"),
+            "qty": "",
+            "price": "",
+            "item_name": "",
             "debit": flt(debit, 2) or "0",
             "credit": flt(credit, 2) or "0"
         })
         for d in party_data:
             if d.get("doctype") == "Invoice Form":
-                statement = "{0} | {1} | {2}".format(d.qty, d.price, d.item_name)
                 commission_with_taxes = 0
                 if filters.get("party_type") == "Supplier" and d.commission:
                     total_taxes = (d.commission * get_tax_rate()) / 100
                     commission_with_taxes = d.commission + total_taxes
-                append_summary(d.reference_id, d.date, statement, commission_with_taxes, d.total)
+                append_summary(d.doctype, d.reference_id, d.date, d.qty, d.price, d.item_name, commission_with_taxes,
+                               d.total)
                 total_credit += d.total
                 total_debit += commission_with_taxes
             elif d.get("doctype") == "Payment Entry":
-                append_summary(d.reference_id, d.date, _("The Box"), d.paid_amount, 0)
+                append_summary(d.doctype, d.reference_id, d.date, d.remarks, d.payment_type,"", d.paid_amount, 0)
                 total_debit += d.paid_amount
 
         # Calculate and append closing
@@ -221,8 +227,11 @@ def get_party_summary(filters, party_type, data):
             total_debit, total_credit = total_credit, total_debit
 
         final_data[party].append({
+            "doctype": "",
             "reference_id": _("Total"),
-            "statement": flt(total_debit - total_credit, 2) or "0",
+            "qty": flt(total_debit - total_credit, 2) or "0",
+            "price": "",
+            "item_name": "",
             "debit": flt(total_debit, 2) or "0",
             "credit": flt(total_credit, 2) or "0"
         })

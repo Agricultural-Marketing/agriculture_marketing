@@ -10,10 +10,11 @@ table, th, td{
   border: 2px solid black;
   border-collapse: collapse;
   text-align: center;
-  margin-bottom: 15px;
+  margin-top: 10px;
+  margin-bottom: 10px;
 }
 .summary-table {
-    width: 70%;
+    width: 95%;
     margin-left: auto;
     margin-right: auto;
     font-size: 14px;
@@ -58,7 +59,7 @@ table, th, td{
     {% set party_data = data[party] %}
 <table class="table summary-table" id="summary">
     <thead>
-    <tr> <th colspan="5">
+    <tr> <th colspan="7">
            {% if is_supplier %} {{ _(" Supplier Name") }} {% else %} {{ _("Customer Name") }} {% endif %} : {{ party }}
     </th> </tr>
         <tr>
@@ -66,7 +67,9 @@ table, th, td{
             <th style="width: 13%"> {{ _("Date") }} </th>
             <th style="width: 8%"> {{ _("Debit") }} </th>
             <th style="width: 8%"> {{ _("Credit") }} </th>
-            <th style="width: 25%"> {{ _("Statement") }} </th>
+            <th style="width: 10%"> {{ _("Price") }} </th>
+            <th style="width: 15%"> {{ _("Quantity") }} </th>
+            <th style="width: 15%"> {{ _("Item Name") }} </th>
         </tr>
     </thead>
     <tbody>
@@ -77,12 +80,24 @@ table, th, td{
                     <td> {% if item.date %} {{ item.date }} {% endif %} </td>
                     <td> {% if item.debit %} {{ item.debit }} {% endif %} </td>
                     <td> {% if item.credit %} {{ item.credit }} {% endif %} </td>
-                    <td> {{ item.statement }} </td>
+                    {% if item.doctype == "Invoice Form" %}
+                        <td> {{ item.price }} </td>
+                        <td> {{ item.qty }} </td>
+                        <td> {{ item.item_name }} </td>
+                    {% else %}
+                        <td> {{ item.price }} </td>
+                        <td colspan="2"> {{ item.qty }} </td>
+                    {% endif %}
                 </tr>
             {% endfor %}
         {% endif %}
     </tbody>
 </table>
+<span> {{ _("If pay or receive transaction note the following") }}: </span>
+<ul>
+    <li>{{ _("Price cell will be replaced by payment type") }}</li>
+    <li> {{ _("Quantity and Item name cells will be replaced by payment notes") }}</li>
+</ul>
 <hr>
 {% endfor %}
 {% endif %}

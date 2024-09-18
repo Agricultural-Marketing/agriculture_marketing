@@ -49,3 +49,7 @@ Collection Form, كشف التحصيل
 Generate Collection Form, توليد كشف التحصيل
 Printed Date, تاريخ الطباعة
 Printed Time, وقت الطباعة
+If pay or receive transaction note the following, إذا كانت عمليه دفع أو إستلام برجاء ملاحظة التالي
+Price cell will be replaced by payment type, خانة السعر سيتم إستبدالها بنوع العملية
+Quantity and Item name cells will be replaced by payment notes, خانتي الكمية و اسم السلعة سيتم استبدالهم بملاحظات
+العملية
