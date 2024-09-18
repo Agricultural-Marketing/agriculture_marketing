@@ -7,18 +7,18 @@
 <html dir="{{ layout_direction }}" lang="{{ lang }}">
 <style>
 table, th, td{
+  width: 100%;
   border: 2px solid black;
   border-collapse: collapse;
   text-align: center;
   margin-bottom: 20px;
-  width: 100%
-  margin-left:auto;
-  margin-right:auto;
+  margin-top: 20px;
+  font-size: 14px;
+  table-layout:fixed;
 }
-img{
-    height: 200px;
+img {
+    width: 100%;
 }
-
 </style>
 <body>
 {% if letter_head %}
@@ -96,9 +96,6 @@ img{
             <th style="width: 8%"> {{ _("Quantity") }} </th>
             <th style="width:8%"> {{ _("Price") }} </th>
             <th style="width: 8%"> {{ _("Total") }} </th>
-            {% if filters.party_type == "Supplier" %}
-                <th style="width: 8%"> {{ _("Commission") }} </th>
-            {% endif %}
         </tr>
     </thead>
     <tbody>
@@ -110,9 +107,6 @@ img{
                 <td> {% if item.qty %} {{ item.qty }} {% endif %} </td>
                 <td> {% if item.price %} {{ item.price }} {% endif %} </td>
                 <td> {% if item.total %} {{ item.total }} {% endif %} </td>
-                {% if filters.party_type == "Supplier" %}
-                <td> {% if item.commission %} {{ item.commission }} {% endif %} </td>
-                {% endif %}
             </tr>
         {% endfor %}
     </tbody>
@@ -129,7 +123,7 @@ img{
     <thead>
         <tr>
             <th style="width: 10%"> {{ _("Date") }} </th>
-            <th style="width: 12%"> {{ _("Payment No") }} </th>
+            <th style="width: 15%"> {{ _("Payment No") }} </th>
             <th style="width: 6%"> {{ _("Mode of Payment") }} </th>
             <th style="width: 6%"> {{ _("Payment Type") }} </th>
             <th style="width: 25%"> {{ _("Remarks") }} </th>
@@ -141,8 +135,8 @@ img{
             <tr>
                 <td> {{ payment.date }} </td>
                 <td> {% if payment.payment_id %} {{ payment.payment_id }} {% endif %} </td>
-                <td> {% if payment.mop %} {{ payment.mop }} {% endif %} </td>
-                <td> {% if payment.payment_type %} {{ payment.payment_type }} {% endif %} </td>
+                <td> {% if payment.mop %} {{ _(payment.mop) }} {% endif %} </td>
+                <td> {% if payment.payment_type %} {{ _(payment.payment_type) }} {% endif %} </td>
                 <td> {% if payment.remarks %} {{ payment.remarks }} {% endif %} </td>
                 <td> {{ payment.paid_amount }} </td>
             </tr>

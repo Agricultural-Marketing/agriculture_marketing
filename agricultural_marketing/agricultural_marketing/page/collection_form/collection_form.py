@@ -218,7 +218,7 @@ def get_party_summary(filters, party_type, data):
                 total_debit += commission_with_taxes
             elif d.get("doctype") == "Payment Entry":
                 append_summary(d.doctype, d.reference_id, d.date, "", "",
-                               f"{_(d.mop)} <hr> {d.remarks}", d.paid_amount, 0)
+                               f"{_(d.mop)} - {d.remarks}", d.paid_amount, 0)
                 total_debit += d.paid_amount
 
         # Calculate and append closing
@@ -230,9 +230,9 @@ def get_party_summary(filters, party_type, data):
         final_data[party].append({
             "doctype": "",
             "reference_id": _("Total"),
-            "qty": flt(total_debit - total_credit, 2) or "0",
+            "qty": "",
             "price": "",
-            "statement": "",
+            "statement": flt(total_debit - total_credit, 2) or "0",
             "debit": flt(total_debit, 2) or "0",
             "credit": flt(total_credit, 2) or "0"
         })

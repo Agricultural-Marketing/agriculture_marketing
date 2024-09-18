@@ -312,31 +312,13 @@ def process_result_and_totals_for_invoices(result, data, filters):
             total_qty, total_before_tax, total_commission, total_taxes, total_commission_with_taxes = calculate_totals(
                 items)
 
-            # Append summary rows for totals
-            append_totals(items, total_qty, total_before_tax, total_commission, total_taxes,
-                          total_commission_with_taxes)
-
-
-def append_totals(items, total_qty, total_before_tax, total_commission, total_taxes, total_commission_with_taxes):
-    items.append({
-        "date": _("Total Without Taxes"),
-        "qty": total_qty,
-        "total": total_before_tax,
-        "commission": total_commission
-    })
-
-    if total_taxes:
-        items.append({
-            "date": _("Taxes"),
-            "commission": total_taxes
-        })
-
-    items.append({
-        "date": _("Total with Taxes"),
-        "qty": total_qty,
-        "total": total_before_tax,
-        "commission": total_commission_with_taxes
-    })
+            # Append totals
+            items.append({
+                "date": _("Total"),
+                "qty": "",
+                "total": total_before_tax,
+                "commission": total_commission_with_taxes
+            })
 
 
 def select_fields_for_payment(filters, payments_query, entry):
@@ -372,7 +354,7 @@ def process_result_and_totals_for_payments(result, data):
         """Calculate the total paid amount"""
         total_amount = sum(p.get('paid_amount', 0) for p in payments)
         payments.append({
-            "date": _("Grand Total"),
+            "date": _("Total"),
             "paid_amount": total_amount
         })
 
