@@ -143,7 +143,7 @@ def get_header_data(party_group, party):
 
 
 def get_party_summary(filters, party_type, data):
-    def append_summary(doctype, reference_id, date, qty, price, item_name, debit, credit):
+    def append_summary(doctype, reference_id, date, qty, price, statement, debit, credit):
         nonlocal last_balance
         if switch_columns:
             debit, credit = credit, debit
@@ -154,7 +154,7 @@ def get_party_summary(filters, party_type, data):
             "date": date,
             "qty": qty,
             "price": price,
-            "item_name": item_name,
+            "statement": statement,
             "debit": flt(debit, 2) or str(debit),
             "credit": flt(credit, 2) or str(credit)
         })
@@ -202,7 +202,7 @@ def get_party_summary(filters, party_type, data):
             "reference_id": _("Opening Balance"),
             "qty": "",
             "price": "",
-            "item_name": "",
+            "statement": "",
             "debit": flt(debit, 2) or "0",
             "credit": flt(credit, 2) or "0"
         })
@@ -217,7 +217,8 @@ def get_party_summary(filters, party_type, data):
                 total_credit += d.total
                 total_debit += commission_with_taxes
             elif d.get("doctype") == "Payment Entry":
-                append_summary(d.doctype, d.reference_id, d.date, d.remarks, d.payment_type,"", d.paid_amount, 0)
+                append_summary(d.doctype, d.reference_id, d.date, "", "",
+                               f"{_(d.mop)} <hr> {d.remarks}", d.paid_amount, 0)
                 total_debit += d.paid_amount
 
         # Calculate and append closing
@@ -231,7 +232,7 @@ def get_party_summary(filters, party_type, data):
             "reference_id": _("Total"),
             "qty": flt(total_debit - total_credit, 2) or "0",
             "price": "",
-            "item_name": "",
+            "statement": "",
             "debit": flt(total_debit, 2) or "0",
             "credit": flt(total_credit, 2) or "0"
         })
