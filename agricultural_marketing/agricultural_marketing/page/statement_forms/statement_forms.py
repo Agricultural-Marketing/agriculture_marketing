@@ -236,7 +236,8 @@ def get_party_summary(filters, party_type, party, party_data):
 
     # Append Summaries
     append_summary(_("Duration Selling"), 0, total_sales)
-    append_summary(_("Duration Commission"), total_commission_with_taxes, 0)
+    if filters.get("party_type") == "Supplier":
+        append_summary(_("Duration Commission"), total_commission_with_taxes, 0)
     append_summary(_("Duration Payments"), total_payments, 0)
 
     # Calculate and append closing
