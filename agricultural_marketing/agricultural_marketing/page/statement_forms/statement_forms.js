@@ -14,7 +14,15 @@ frappe.pages['statement-forms'].on_page_load = function(wrapper) {
 	        openingApproach.set_value(value);
 	    })
 	});
-    openingApproach.$wrapper.addClass('col-md-12');
+    openingApproach.$wrapper.addClass('col-md-6');
+
+    let considerDraft = page.add_field({
+	    label: __('Consider Drafts'),
+	    fieldtype: 'Check',
+	    fieldname: 'consider_draft',
+	    default: 0
+	});
+    considerDraft.$wrapper.addClass('col-md-6');
 
     let company = page.add_field({
 	    label: 'Company',

@@ -97,7 +97,10 @@ def get_items_details(data, filters):
     items_query = validate_and_apply_date_filters(filters, items_query, invform)
 
     # Filter for submitted (docstatus 1) invoice forms
-    items_query = items_query.where(invform.docstatus == 1)
+    if filters.get("consider_draft"):
+        items_query = items_query.where(invform.docstatus.isin([0, 1]))
+    else:
+        items_query = items_query.where(invform.docstatus == 1)
 
     # Select relative fields based on party type
     items_query = select_fields_for_invoices(filters, items_query, _field, invform, invformitem)
@@ -124,7 +127,10 @@ def get_payments_details(data, filters):
     payments_query = validate_and_apply_date_filters(filters, payments_query, entry)
 
     # Filter for submitted (docstatus 1) payment entries
-    payments_query = payments_query.where(entry.docstatus == 1)
+    if filters.get("consider_draft"):
+        payments_query = payments_query.where(entry.docstatus.isin([0, 1]))
+    else:
+        payments_query = payments_query.where(entry.docstatus == 1)
 
     # Select relative fields base on party type
     payments_query = select_fields_for_payment(filters, payments_query, entry)

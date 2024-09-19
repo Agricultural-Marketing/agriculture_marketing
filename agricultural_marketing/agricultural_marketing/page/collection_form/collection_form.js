@@ -4,6 +4,14 @@ frappe.pages['collection-form'].on_page_load = function(wrapper) {
 		title: __('Collection Form'),
 		single_column: true
 	});
+	let considerDraft = page.add_field({
+	    label: __('Consider Drafts'),
+	    fieldtype: 'Check',
+	    fieldname: 'consider_draft',
+	    default: 0
+	});
+    considerDraft.$wrapper.addClass('col-md-12');
+
 	let company = page.add_field({
 	    label: 'Company',
 	    fieldtype: 'Link',
