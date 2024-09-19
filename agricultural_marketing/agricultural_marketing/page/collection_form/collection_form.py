@@ -222,10 +222,11 @@ def get_party_summary(filters, party_type, data):
                 total_debit += d.paid_amount
 
         # Calculate and append closing
-        total_debit += debit
-        total_credit += credit
         if switch_columns:
             total_debit, total_credit = total_credit, total_debit
+
+        total_debit += debit
+        total_credit += credit
 
         final_data[party].append({
             "doctype": "",

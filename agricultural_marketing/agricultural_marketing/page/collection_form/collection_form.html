@@ -60,6 +60,10 @@ img {
 <!--Summary Table-->
 {% for party in data %}
     {% set party_data = data[party] %}
+<div style="text-align:center;">
+    {{ _("From Date") }}: {{ filters.from_date }} &nbsp;
+    {{ _("To Date") }}: {{ filters.to_date }}
+</div>
 <table class="table summary-table" id="summary">
     <thead>
     <tr> <th colspan="7">
