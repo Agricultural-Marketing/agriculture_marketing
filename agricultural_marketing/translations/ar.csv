@@ -23,6 +23,7 @@ Total with Taxes, الإجمالي شامل الضريبة
 Items Details, تفاصيل الأصناف
 Payments Details, تفاصيل الدفعات
 Statement Forms, نماذج الكشوفات
+Statement Form, كشف حساب مفصل
 Download Reports, تحميل التقارير
 Consider All Parties, إعتماد الكل
 No data matches the chosen criteria, لا يوجد بيانات تطابق المعايير المطلوبة
@@ -43,3 +44,10 @@ Invoice Forms, فواتير الموردين
 Supplier Reports, تقارير الموردين
 Customer Reports, تقارير العملاء
 Agriculture Marketing, التسويق الزراعي
+The Box, الصندوق
+Previous Balance, رصيد سابق
+Collection Form, كشف التحصيل
+Generate Collection Form, توليد كشف التحصيل
+Printed Date, تاريخ الطباعة
+Printed Time, وقت الطباعة
+Consider Drafts, تضمين الحركات المسودة

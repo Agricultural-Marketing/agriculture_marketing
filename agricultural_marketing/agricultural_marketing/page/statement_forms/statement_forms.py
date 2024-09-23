@@ -15,8 +15,13 @@ from pypika import Case
 def get_reports(filters):
     data = frappe._dict()
     file_urls = []
+    letter_head = None
     if isinstance(filters, str):
         filters = json.loads(filters)
+
+    default_letter_head = frappe.get_value("Company", filters.get("company"), "default_letter_head")
+    if default_letter_head:
+        letter_head = frappe.get_doc("Letter Head", default_letter_head)
 
     # Get Data
     data = get_data(data, filters)
@@ -33,6 +38,7 @@ def get_reports(filters):
 
         header_details = get_header_data(filters.get("party_group"), key)
         context = {
+            "letter_head": letter_head,
             "header": header_details,
             "summary": party_summary,
             "items": value.get("items"),
@@ -43,7 +49,7 @@ def get_reports(filters):
         }
 
         html = frappe.render_template(html_format, context)
-        content = _get_pdf(html, {"orientation": "Landscape"})
+        content = _get_pdf(html, {"orientation": "Portrait"})
         file_name = "{0}-{1}.pdf".format(key, str(random.randint(1000, 9999)))
         file_doc = frappe.new_doc("File")
         file_doc.update({
@@ -91,7 +97,10 @@ def get_items_details(data, filters):
     items_query = validate_and_apply_date_filters(filters, items_query, invform)
 
     # Filter for submitted (docstatus 1) invoice forms
-    items_query = items_query.where(invform.docstatus == 1)
+    if filters.get("consider_draft"):
+        items_query = items_query.where(invform.docstatus.isin([0, 1]))
+    else:
+        items_query = items_query.where(invform.docstatus == 1)
 
     # Select relative fields based on party type
     items_query = select_fields_for_invoices(filters, items_query, _field, invform, invformitem)
@@ -118,7 +127,10 @@ def get_payments_details(data, filters):
     payments_query = validate_and_apply_date_filters(filters, payments_query, entry)
 
     # Filter for submitted (docstatus 1) payment entries
-    payments_query = payments_query.where(entry.docstatus == 1)
+    if filters.get("consider_draft"):
+        payments_query = payments_query.where(entry.docstatus.isin([0, 1]))
+    else:
+        payments_query = payments_query.where(entry.docstatus == 1)
 
     # Select relative fields base on party type
     payments_query = select_fields_for_payment(filters, payments_query, entry)
@@ -230,7 +242,8 @@ def get_party_summary(filters, party_type, party, party_data):
 
     # Append Summaries
     append_summary(_("Duration Selling"), 0, total_sales)
-    append_summary(_("Duration Commission"), total_commission_with_taxes, 0)
+    if filters.get("party_type") == "Supplier":
+        append_summary(_("Duration Commission"), total_commission_with_taxes, 0)
     append_summary(_("Duration Payments"), total_payments, 0)
 
     # Calculate and append closing
@@ -306,31 +319,13 @@ def process_result_and_totals_for_invoices(result, data, filters):
             total_qty, total_before_tax, total_commission, total_taxes, total_commission_with_taxes = calculate_totals(
                 items)
 
-            # Append summary rows for totals
-            append_totals(items, total_qty, total_before_tax, total_commission, total_taxes,
-                          total_commission_with_taxes)
-
-
-def append_totals(items, total_qty, total_before_tax, total_commission, total_taxes, total_commission_with_taxes):
-    items.append({
-        "date": _("Total Without Taxes"),
-        "qty": total_qty,
-        "total": total_before_tax,
-        "commission": total_commission
-    })
-
-    if total_taxes:
-        items.append({
-            "date": _("Taxes"),
-            "commission": total_taxes
-        })
-
-    items.append({
-        "date": _("Total with Taxes"),
-        "qty": total_qty,
-        "total": total_before_tax,
-        "commission": total_commission_with_taxes
-    })
+            # Append totals
+            items.append({
+                "date": _("Total"),
+                "qty": "",
+                "total": total_before_tax,
+                "commission": total_commission_with_taxes
+            })
 
 
 def select_fields_for_payment(filters, payments_query, entry):
@@ -366,7 +361,7 @@ def process_result_and_totals_for_payments(result, data):
         """Calculate the total paid amount"""
         total_amount = sum(p.get('paid_amount', 0) for p in payments)
         payments.append({
-            "date": _("Grand Total"),
+            "date": _("Total"),
             "paid_amount": total_amount
         })
 

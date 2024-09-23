@@ -1,30 +1,18 @@
-frappe.pages['statement-forms'].on_page_load = function(wrapper) {
+frappe.pages['collection-form'].on_page_load = function(wrapper) {
 	var page = frappe.ui.make_app_page({
 		parent: wrapper,
-		title: __('Statement Forms'),
+		title: __('Collection Form'),
 		single_column: true
 	});
-
-	let openingApproach = page.add_field({
-	    label: 'Calculate Opening Balance with Totals',
-	    fieldtype: 'Check',
-	    fieldname: 'calculate_opening_balance_with_totals',
-	    default: frappe.db.get_single_value("Agriculture Settings", "calculate_opening_balance_with_totals").then(
-	    (value) => {
-	        openingApproach.set_value(value);
-	    })
-	});
-    openingApproach.$wrapper.addClass('col-md-6');
-
-    let considerDraft = page.add_field({
+	let considerDraft = page.add_field({
 	    label: __('Consider Drafts'),
 	    fieldtype: 'Check',
 	    fieldname: 'consider_draft',
 	    default: 0
 	});
-    considerDraft.$wrapper.addClass('col-md-6');
+    considerDraft.$wrapper.addClass('col-md-12');
 
-    let company = page.add_field({
+	let company = page.add_field({
 	    label: 'Company',
 	    fieldtype: 'Link',
 	    fieldname: 'company',
@@ -150,7 +138,7 @@ frappe.pages['statement-forms'].on_page_load = function(wrapper) {
 	});
     partyTypeField.$wrapper.removeClass('col-md-2').addClass('col-md-4');
 
-    function get_reports(filters) {
+    function get_data(filters) {
         frappe.dom.freeze('Processing...');
         var final_filters = {};
         for (let key in filters) {
@@ -158,7 +146,7 @@ frappe.pages['statement-forms'].on_page_load = function(wrapper) {
         }
         validateMandatoryFilters(final_filters);
         frappe.call({
-            method: 'agricultural_marketing.agricultural_marketing.page.statement_forms.statement_forms.get_reports',
+            method: 'agricultural_marketing.agricultural_marketing.page.collection_form.collection_form.execute',
             args : {
                 filters: final_filters
             },
@@ -211,6 +199,5 @@ frappe.pages['statement-forms'].on_page_load = function(wrapper) {
             })
         }
     }
-    let $btn = page.set_primary_action( __('Download Reports'), () => { get_reports(page.fields_dict) });
-
+    let $btn = page.set_primary_action( __('Generate Collection Form'), () => { get_data(page.fields_dict) });
 }
