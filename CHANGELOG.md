@@ -8,6 +8,16 @@ to a section with the version name.
 
 ## Unreleased Changes
 
+## 1.2.0
+
+### Collection form page
+
+* Custom page to handle downloading collections reports based on applied filters.
+* Support multiple pdf downloading.
+* Generating one report for all customers/suppliers.
+* with the balance summary and invoices and payments details.
+
+
 ## 1.1.0
 
 ### Statement forms page
