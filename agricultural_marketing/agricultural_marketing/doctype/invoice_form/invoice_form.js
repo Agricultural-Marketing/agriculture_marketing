@@ -139,6 +139,7 @@ function filter_basic_info_fields(frm) {
         return {
             filters: {
                 is_customer: 1,
+                is_frozen: 0
             },
         };
     });
@@ -147,6 +148,7 @@ function filter_basic_info_fields(frm) {
         return {
             filters: {
                 is_pamper: 1,
+                is_frozen: 0
             },
         };
     });
