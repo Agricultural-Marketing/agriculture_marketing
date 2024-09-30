@@ -153,34 +153,14 @@ function filter_basic_info_fields(frm) {
 }
 
 function filter_child_tables_fields(frm) {
-    var customers = [];
-    frappe.db.get_list("Customer", {
-        filters: {"is_customer": 1, "is_frozen": 0},
-        fields: ["name"]
-    })
-    .then((result) => {
-            result.forEach((cus) => customers.push(cus.name))
-    });
     frm.fields_dict['items'].grid.get_field("customer").get_query = function() {
             return {
-                filters: {
-                    name: ["in", customers]
-                }
+                filters: {"is_customer": 1, "is_frozen": 0}
             }
     };
-    var pampers = [];
-    frappe.db.get_list("Customer", {
-        filters: {"is_pamper": 1, "is_frozen": 0},
-        fields: ["name"]
-    })
-    .then((result) => {
-            result.forEach((pmp) => pampers.push(pmp.name))
-    });
     frm.fields_dict['items'].grid.get_field("pamper").get_query = function() {
         return {
-            filters: {
-                name: ["in", pampers]
-            }
+            filters: {"is_pamper": 1, "is_frozen": 0}
         }
     };
     frm.fields_dict['items'].grid.get_field("item_code").get_query = function() {
