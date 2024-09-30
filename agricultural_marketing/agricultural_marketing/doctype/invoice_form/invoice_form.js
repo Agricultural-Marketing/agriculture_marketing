@@ -155,7 +155,7 @@ function filter_basic_info_fields(frm) {
 function filter_child_tables_fields(frm) {
     var customers = [];
     frappe.db.get_list("Customer", {
-        filters: {"is_customer": 1},
+        filters: {"is_customer": 1, "is_frozen": 0},
         fields: ["name"]
     })
     .then((result) => {
@@ -170,7 +170,7 @@ function filter_child_tables_fields(frm) {
     };
     var pampers = [];
     frappe.db.get_list("Customer", {
-        filters: {"is_pamper": 1},
+        filters: {"is_pamper": 1, "is_frozen": 0},
         fields: ["name"]
     })
     .then((result) => {
