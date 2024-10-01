@@ -247,10 +247,13 @@ def get_party_summary(filters, party_type, party, party_data):
     append_summary(_("Duration Payments"), total_payments, 0)
 
     # Calculate and append closing
-    total_debit = total_commission_with_taxes + total_payments + debit
-    total_credit = total_sales + credit
+    total_debit = total_commission_with_taxes + total_payments
+    total_credit = total_sales
     if switch_columns:
         total_debit, total_credit = total_credit, total_debit
+
+    total_debit += debit
+    total_credit += credit
 
     party_summary.append({
         "statement": _("Total"),

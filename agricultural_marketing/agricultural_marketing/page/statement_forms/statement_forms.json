@@ -4,13 +4,17 @@
  "docstatus": 0,
  "doctype": "Page",
  "idx": 0,
- "modified": "2024-09-04 22:09:38.298798",
+ "modified": "2024-10-01 13:11:37.231457",
  "modified_by": "Administrator",
  "module": "Agricultural Marketing",
  "name": "statement-forms",
  "owner": "Administrator",
  "page_name": "statement-forms",
- "roles": [],
+ "roles": [
+  {
+   "role": "Accounts Manager"
+  }
+ ],
  "script": null,
  "standard": "Yes",
  "style": null,
