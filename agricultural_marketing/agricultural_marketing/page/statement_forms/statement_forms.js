@@ -39,7 +39,7 @@ frappe.pages['statement-forms'].on_page_load = function(wrapper) {
 	    fieldtype: 'Date',
 	    fieldname: 'from_date',
 	    reqd: 1,
-        default: erpnext.utils.get_fiscal_year(frappe.datetime.get_today(), true)[1]
+        default: frappe.datetime.get_today()
 	});
     fromDate.$wrapper.removeClass('col-md-2').addClass('col-md-4');
 
