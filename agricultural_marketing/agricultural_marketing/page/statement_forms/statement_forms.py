@@ -228,7 +228,6 @@ def get_party_summary(filters, party_type, party, party_data):
     total_payments = get_total_payments(party_data)
     last_balance = debit - credit
     if not filters.get("calculate_opening_balance_with_totals", False):
-        frappe.log_error("error before", f"credit {credit} - debit {debit}")
         if abs(debit) > abs(credit):
             debit = abs(last_balance)
             credit = 0

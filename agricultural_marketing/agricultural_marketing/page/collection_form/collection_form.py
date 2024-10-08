@@ -199,8 +199,12 @@ def get_party_summary(filters, party_type, data):
             credit += gl.credit
 
         last_balance = debit - credit
-        debit = abs(last_balance) if debit > credit else 0
-        credit = abs(last_balance) if credit > debit else 0
+        if abs(debit) > abs(credit):
+            debit = abs(last_balance)
+            credit = 0
+        else:
+            credit = abs(last_balance)
+            debit = 0
 
         # Append Opening
         final_data.setdefault(party, []).append({
