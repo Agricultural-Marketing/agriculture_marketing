@@ -190,8 +190,8 @@ function filter_child_tables_fields(frm) {
 
 function calculate_total_line(frm) {
     let row = frm.selected_doc;
-    row.qty = (row.qty) ? row.qty: 0;
-    row.price = (row.price) ? row.price: 0;
+    row.qty = (row.qty) ? row.qty: null;
+    row.price = (row.price) ? row.price: null;
     row.total = row.qty * row.price;
     frm.refresh_field('items');
 }

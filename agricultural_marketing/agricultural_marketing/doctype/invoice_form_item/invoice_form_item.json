@@ -53,7 +53,8 @@
    "fieldname": "qty",
    "fieldtype": "Float",
    "in_list_view": 1,
-   "label": "Quantity"
+   "label": "Quantity",
+   "reqd": 1
   },
   {
    "fieldname": "column_break_ehhp",
@@ -65,7 +66,8 @@
    "fieldtype": "Currency",
    "in_list_view": 1,
    "label": "Price",
-   "options": "currency"
+   "options": "currency",
+   "reqd": 1
   },
   {
    "columns": 1,
@@ -86,7 +88,8 @@
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Customer",
-   "options": "Customer"
+   "options": "Customer",
+   "reqd": 1
   },
   {
    "fieldname": "column_break_dugc",
@@ -113,7 +116,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2024-09-30 19:35:38.902183",
+ "modified": "2024-10-09 15:04:06.058709",
  "modified_by": "Administrator",
  "module": "Agricultural Marketing",
  "name": "Invoice Form Item",

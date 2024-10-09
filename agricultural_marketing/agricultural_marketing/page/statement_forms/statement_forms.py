@@ -105,7 +105,8 @@ def get_items_details(data, filters):
     # Select relative fields based on party type
     items_query = select_fields_for_invoices(filters, items_query, _field, invform, invformitem)
 
-    result = items_query.orderby(_field, invform.posting_date, order=Order.desc).run(as_dict=True)
+    result = items_query.orderby(invform.posting_date).orderby(invform.name).orderby(
+        invformitem.item_name).run(as_dict=True)
 
     if result:
         # Construct result, appending to final data nad appending totals
