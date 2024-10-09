@@ -234,7 +234,7 @@ def get_party_summary(filters, party_type, data):
             elif d.get("doctype") == "Payment Entry":
                 statement = f"{_(d.mop)} - {d.remarks}" if d.remarks else f"{_(d.mop)}"
                 append_summary(d.doctype, d.reference_id, d.date, "", "",
-                               statement, d.paid_amount, 0)
+                               statement, abs(d.paid_amount), 0)
                 total_debit += d.paid_amount
 
         # Calculate and append closing
@@ -375,10 +375,7 @@ def get_draft_total_payments(filters, party):
         entry.docstatus == 0
     )
 
-    payments_query = payments_query.select(Term.wrap_constant("Payment Entry").as_("doctype"),
-                                           entry.party_type, entry.party, entry.name.as_("reference_id"),
-                                           entry.posting_date.as_("date"), entry.mode_of_payment.as_("mop"),
-                                           entry.payment_type, entry.remarks)
+    payments_query = payments_query.select(entry.payment_type)
 
     # Conditionally select paid amount based on party type and payment type
     if filters.get("party_type") == "Supplier":

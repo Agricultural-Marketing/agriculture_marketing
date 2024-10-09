@@ -8,7 +8,7 @@ to a section with the version name.
 
 ## Unreleased Changes
 
-* Consider draft totals in opening balances.
+* Consider draft totals in opening balances (Reports).
 
 ## 1.2.0
 
