@@ -8,6 +8,8 @@ to a section with the version name.
 
 ## Unreleased Changes
 
+* Consider draft totals in opening balances.
+
 ## 1.2.0
 
 ### Collection form page

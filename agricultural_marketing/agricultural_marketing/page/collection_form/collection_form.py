@@ -7,7 +7,7 @@ from frappe import _
 from frappe.utils import getdate, flt
 from frappe.utils.jinja_globals import is_rtl
 from frappe.utils.pdf import get_pdf as _get_pdf
-from frappe.query_builder import Order
+from frappe.query_builder.functions import Sum
 from pypika import Case
 from pypika.terms import Term
 from frappe.contacts.doctype.address.address import get_company_address
@@ -142,13 +142,6 @@ def get_payments_details(filters):
     return result
 
 
-def get_header_data(party_group, party):
-    return {
-        "party": party,
-        "party_group": party_group
-    }
-
-
 def get_party_summary(filters, party_type, data):
     def append_summary(doctype, reference_id, date, qty, price, statement, debit, credit):
         nonlocal last_balance
@@ -198,6 +191,17 @@ def get_party_summary(filters, party_type, data):
         for gl in gl_entries:
             debit += gl.debit
             credit += gl.credit
+
+        # GET total items and payments before from date
+        if filters.get("consider_draft"):
+            total_items = get_draft_total_items(filters, party) or 0
+            total_payments = get_draft_total_payments(filters, party) or 0
+            if filters.get("party_type") == "Supplier":
+                debit += total_payments
+                credit += total_items
+            else:
+                debit += total_items
+                credit += total_payments
 
         last_balance = debit - credit
         if abs(debit) > abs(credit):
@@ -340,3 +344,58 @@ def get_tax_rate():
     tax_rate = frappe.db.get_value("Sales Taxes and Charges",
                                    {"parent": default_tax_template}, "rate") or 0
     return tax_rate
+
+
+def get_draft_total_items(filters, party):
+    invform = frappe.qb.DocType("Invoice Form")
+    invformitem = frappe.qb.DocType("Invoice Form Item")
+    items_query = frappe.qb.from_(invform).left_join(invformitem).on(
+        invformitem.parent == invform.name).where(invform.company == filters.get('company'))
+
+    # Determine and apply party filters based on party type
+    _field = invformitem.customer if filters.get("party_type") == "Customer" else invform.supplier
+    items_query = items_query.where(_field == party)
+
+    items_query = items_query.where(invform.docstatus == 0).where(invform.posting_date.lt(filters.get("from_date")))
+
+    # Select relative fields based on party type
+    result = items_query.select(Sum(invformitem.total).as_("total")).run(as_dict=True)
+
+    total_items = sum([re["total"] for re in result if result]) or 0
+
+    return total_items
+
+
+def get_draft_total_payments(filters, party):
+    entry = frappe.qb.DocType("Payment Entry")
+    payments_query = frappe.qb.from_(entry).where(
+        entry.company == filters.get('company')).where(
+        entry.party == party).where(
+        entry.posting_date.lt(filters.get("from_date"))).where(
+        entry.docstatus == 0
+    )
+
+    payments_query = payments_query.select(Term.wrap_constant("Payment Entry").as_("doctype"),
+                                           entry.party_type, entry.party, entry.name.as_("reference_id"),
+                                           entry.posting_date.as_("date"), entry.mode_of_payment.as_("mop"),
+                                           entry.payment_type, entry.remarks)
+
+    # Conditionally select paid amount based on party type and payment type
+    if filters.get("party_type") == "Supplier":
+        payments_query = payments_query.select(
+            Case().when(entry.payment_type == "Pay", Sum(entry.paid_amount)).
+            when(entry.payment_type == "Receive", (Sum(entry.paid_amount * -1))).
+            else_(Sum(entry.paid_amount)).as_("paid_amount")
+        )
+    elif filters.get("party_type") == "Customer":
+        payments_query = payments_query.select(
+            Case().when(entry.payment_type == "Receive", Sum(entry.paid_amount)).
+            when(entry.payment_type == "Pay", (Sum(entry.paid_amount * -1))).
+            else_(Sum(entry.paid_amount)).as_("paid_amount")
+        )
+
+    result = payments_query.run(as_dict=True)
+
+    total_paid_amount = sum([re["paid_amount"] for re in result if re["paid_amount"]]) or 0
+
+    return total_paid_amount
