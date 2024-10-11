@@ -361,7 +361,7 @@ def get_draft_total_items(filters, party):
     # Select relative fields based on party type
     result = items_query.select(Sum(invformitem.total).as_("total")).run(as_dict=True)
 
-    total_items = sum([re["total"] for re in result if result]) or 0
+    total_items = sum([re["total"] for re in result if re["total"]]) or 0
 
     return total_items
 
