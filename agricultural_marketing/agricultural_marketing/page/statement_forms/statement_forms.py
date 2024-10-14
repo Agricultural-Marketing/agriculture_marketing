@@ -256,10 +256,10 @@ def get_party_summary(filters, party_type, party, party_data):
     })
 
     # Append Summaries
-    append_summary(_("Duration Selling"), 0, total_sales)
+    append_summary(_("Duration Selling"), 0, flt(total_sales, 2))
     if filters.get("party_type") == "Supplier":
-        append_summary(_("Commission") + " + " + _("VAT"), total_commission_with_taxes, 0)
-    append_summary(_("Duration Payments"), total_payments, 0)
+        append_summary(_("Commission") + " + " + _("VAT"), flt(total_commission_with_taxes, 2), 0)
+    append_summary(_("Duration Payments"), flt(total_payments, 2), 0)
 
     # Calculate and append closing
     total_debit = total_commission_with_taxes + total_payments

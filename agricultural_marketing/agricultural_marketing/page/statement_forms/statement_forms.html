@@ -64,7 +64,11 @@ img{
     </tbody>
 </table>
 <hr>
-
+<div style="text-align:center;">
+    {{ _("From Date") }}: {{ filters.from_date }} &nbsp;
+    {{ _("To Date") }}: {{ filters.to_date }}
+</div>
+<hr>
 {% if summary %}
 <!--Summary Table-->
 <div>
