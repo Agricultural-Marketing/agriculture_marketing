@@ -101,9 +101,15 @@ frappe.ui.form.on("Invoice Form", {
 
 frappe.ui.form.on("Invoice Form Item", {
     items_add: function (frm, cdt, cdn) {
+        let fields = ["item_code", "item_name", "qty", "price", "total", "commission", "customer", "pamper"];
+
         let row = frm.selected_doc;
-        row.pamper = frm.doc.pamper;
-        row.customer = frm.doc.customer;
+        var last_row_index = frm.doc.items.length - 2;
+        let prev_row = frm.doc.items[last_row_index]
+        for (const [key, value] of Object.entries(prev_row)) {
+            if (fields.includes(key))
+                row[key] = value;
+        }
         frm.refresh_field('items');
     },
     qty: function (frm, cdt, cdn) {

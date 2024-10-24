@@ -72,12 +72,12 @@ frappe.pages['statement-forms'].on_page_load = function(wrapper) {
 	    label: 'Party Type',
 	    fieldtype: 'Link',
 	    fieldname: 'party_type',
-	    options: 'DocType',
+	    options: 'Party Type',
 	    reqd: 1,
 	    get_query: function() {
 	        return {
 	            filters: {
-	                name: ['in', ['Customer', 'Supplier']],
+                    name: ['in', Object.keys(frappe.boot.party_account_types)],
 	            }
 	        }
 	    },

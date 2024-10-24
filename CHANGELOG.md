@@ -9,6 +9,9 @@ to a section with the version name.
 ## Unreleased Changes
 
 * Consider draft totals in opening balances (Reports).
+* Repeat invoice form lines.
+* Increase total amount font size on collection form.
+* Reports supports user permissions.
 
 ## 1.2.0
 
@@ -19,15 +22,14 @@ to a section with the version name.
 * Generating one report for all customers/suppliers.
 * with the balance summary and invoices and payments details.
 
-
 ## 1.1.0
 
 ### Statement forms page
 
 * Custom page to handle downloading reports based on applied filters.
 * Support multiple pdf downloading.
-* Generating a report for each customer/supplier 
-* with the balance summary and invoices and payments  details
+* Generating a report for each customer/supplier
+* with the balance summary and invoices and payments details
 
 ### Reports
 

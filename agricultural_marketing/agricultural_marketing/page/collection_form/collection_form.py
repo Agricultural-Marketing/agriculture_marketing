@@ -249,9 +249,9 @@ def get_party_summary(filters, party_type, data):
             "reference_id": _("Total"),
             "qty": "",
             "price": "",
-            "statement": flt(total_debit - total_credit, 2) or "0",
-            "debit": flt(total_debit, 2) or "0",
-            "credit": flt(total_credit, 2) or "0"
+            "statement": f"<b> {flt(total_debit - total_credit, 2) or '0'} </b>",
+            "debit": f"<b> {flt(total_debit, 2) or '0'} </b>",
+            "credit": f"<b> {flt(total_credit, 2) or '0'} </b>"
         })
 
     return final_data
