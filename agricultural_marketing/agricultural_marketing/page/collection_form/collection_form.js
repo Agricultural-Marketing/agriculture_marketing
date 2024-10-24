@@ -115,7 +115,7 @@ frappe.pages['collection-form'].on_page_load = function(wrapper) {
                         var field = (partyGroupField.df.options == 'Customer Group') ? 'customer_group' :
                         'supplier_group'
                         if (partyTypeField.get_value() == 'Customer') {
-                            var filters = {is_customer:1}
+                            var filters = {is_farmer:0}
                             if (partyGroupField.get_value()) {
                                 filters[field] = partyGroupField.get_value()
                             }
