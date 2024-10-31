@@ -101,9 +101,11 @@ frappe.ui.form.on("Invoice Form", {
 
 frappe.ui.form.on("Invoice Form Item", {
     items_add: function (frm, cdt, cdn) {
-        let fields = ["item_code", "item_name", "qty", "price", "total", "commission", "customer", "pamper"];
+        let fields = ["item_code", "item_name"];
 
         let row = frm.selected_doc;
+    	row.customer = frm.doc.customer;
+	row.pamper = frm.doc.pamper;
         var last_row_index = frm.doc.items.length - 2;
         let prev_row = frm.doc.items[last_row_index]
         for (const [key, value] of Object.entries(prev_row)) {
