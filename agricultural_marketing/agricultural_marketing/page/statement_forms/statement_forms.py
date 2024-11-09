@@ -338,7 +338,7 @@ def process_result_and_totals_for_invoices(result, data, filters):
     for row in result:
         party = row.pop("party")  # Extract and remove party from the row
         invoice_id = row.get("invoice_id")
-        if invoice_id in invoices:
+        if invoice_id in invoices and filters.get("neglect_items"):
             for d in data[party]["items"]:
                 if d["invoice_id"] == invoice_id:
                     d["total"] += row["total"]
