@@ -14,7 +14,7 @@ frappe.pages['statement-forms'].on_page_load = function(wrapper) {
 	        openingApproach.set_value(value);
 	    })
 	});
-    openingApproach.$wrapper.addClass('col-md-6');
+    openingApproach.$wrapper.addClass('col-md-4');
 
     let considerDraft = page.add_field({
 	    label: __('Consider Drafts'),
@@ -22,7 +22,15 @@ frappe.pages['statement-forms'].on_page_load = function(wrapper) {
 	    fieldname: 'consider_draft',
 	    default: 0
 	});
-    considerDraft.$wrapper.addClass('col-md-6');
+    considerDraft.$wrapper.addClass('col-md-4');
+
+    let neglectItems = page.add_field({
+	    label: __('Neglect Items'),
+	    fieldtype: 'Check',
+	    fieldname: 'neglect_items',
+	    default: 0
+	});
+    neglectItems.$wrapper.addClass('col-md-4');
 
     let company = page.add_field({
 	    label: 'Company',

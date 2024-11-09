@@ -13,6 +13,7 @@ to a section with the version name.
 * Increase total amount font size on collection form.
 * Reports supports user permissions.
 * Filter customer parties to be customers/ pampers only.
+* Add check in statement form to group the details with invoices.
 
 ## 1.2.0
 

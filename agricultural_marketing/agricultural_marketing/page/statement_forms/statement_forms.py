@@ -2,6 +2,8 @@ import json
 import os
 import random
 
+from IPython.terminal.shortcuts.auto_match import braces
+
 import frappe
 from frappe import _
 from frappe.utils import getdate, flt
@@ -307,9 +309,14 @@ def validate_and_apply_date_filters(filters, query, doctype):
 
 
 def select_fields_for_invoices(filters, items_query, _field, invform, invformitem):
-    items_query = items_query.select(_field.as_("party"), invform.name.as_("invoice_id"),
-                                     invform.posting_date.as_("date"), invformitem.qty, invformitem.price,
-                                     invformitem.total, invformitem.item_name)
+    if filters.get("neglect_items"):
+        items_query = items_query.select(_field.as_("party"), invform.name.as_("invoice_id"),
+                                         invform.posting_date.as_("date"),
+                                         invformitem.total)
+    else:
+        items_query = items_query.select(_field.as_("party"), invform.name.as_("invoice_id"),
+                                         invform.posting_date.as_("date"), invformitem.qty, invformitem.price,
+                                         invformitem.total, invformitem.item_name)
 
     if filters.get("party_type") == "Supplier":
         items_query = items_query.select(invformitem.commission)
@@ -320,16 +327,25 @@ def select_fields_for_invoices(filters, items_query, _field, invform, invformite
 def process_result_and_totals_for_invoices(result, data, filters):
     def calculate_totals(items):
         """Calculate the total quantities, before tax, commission, and taxes."""
-        total_qty = sum([it['qty'] for it in items])
-        total_before_tax = sum([it['total'] for it in items])
-        total_commission = sum([it['commission'] for it in items]) if filters.get("party_type") == "Supplier" else 0
+        total_qty = sum([it.get('qty') for it in items if it.get('qty')])
+        total_before_tax = sum([it.get('total') for it in items if it.get('total')])
+        total_commission = sum([it.get('commission') for it in items]) if filters.get("party_type") == "Supplier" else 0
         total_taxes = (total_commission * get_tax_rate()) / 100 if total_commission else 0
         total_commission_with_taxes = total_commission + total_taxes
         return total_qty, total_before_tax, total_commission, total_taxes, total_commission_with_taxes
 
+    invoices = set()
     for row in result:
         party = row.pop("party")  # Extract and remove party from the row
-        data.setdefault(party, {}).setdefault("items", []).append(row)
+        invoice_id = row.get("invoice_id")
+        if invoice_id in invoices:
+            for d in data[party]["items"]:
+                if d["invoice_id"] == invoice_id:
+                    d["total"] += row["total"]
+                    break
+        else:
+            data.setdefault(party, {}).setdefault("items", []).append(row)
+            invoices.add(row["invoice_id"])
 
     for party_data in data.values():
         items = party_data.get("items", [])
