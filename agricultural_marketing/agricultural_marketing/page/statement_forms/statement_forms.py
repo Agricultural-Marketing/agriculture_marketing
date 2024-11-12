@@ -342,6 +342,8 @@ def process_result_and_totals_for_invoices(result, data, filters):
             for d in data[party]["items"]:
                 if d["invoice_id"] == invoice_id:
                     d["total"] += row["total"]
+                    if filters.get("party_type") == "Supplier":
+                        d["commission"] += row["commission"]
                     break
         else:
             data.setdefault(party, {}).setdefault("items", []).append(row)
