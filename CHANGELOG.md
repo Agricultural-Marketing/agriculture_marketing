@@ -8,6 +8,8 @@ to a section with the version name.
 
 ## Unreleased Changes
 
+# 1.3.0
+
 * Consider draft totals in opening balances (Reports).
 * Repeat invoice form lines.
 * Increase total amount font size on collection form.
