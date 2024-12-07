@@ -192,7 +192,7 @@
   },
   {
    "fieldname": "commission_invoice_reference",
-   "fieldtype": "Link",
+   "fieldtype": "Data",
    "label": "Commission Invoice Reference",
    "options": "Sales Invoice",
    "read_only": 1
@@ -208,7 +208,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2024-08-18 00:02:57.113947",
+ "modified": "2024-12-08 01:31:41.749752",
  "modified_by": "Administrator",
  "module": "Agricultural Marketing",
  "name": "Invoice Form",

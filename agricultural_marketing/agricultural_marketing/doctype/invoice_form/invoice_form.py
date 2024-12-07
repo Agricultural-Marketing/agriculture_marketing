@@ -11,15 +11,20 @@ import copy
 
 class InvoiceForm(Document):
     settings = frappe.get_single("Agriculture Settings")
+    pos_profile = frappe.get_doc("POS Profile", settings.get("pos_profile"))
+    commission_invoice_refs = []
 
     def validate(self):
         self.update_grand_total()
+        self.update_customer_commission()
         self.update_commission_and_taxes()
 
     def on_submit(self):
         self.make_gl_entries()
         if self.settings.get("generate_commission_invoices_automatically"):
-            self.generate_commission_invoice()
+            self.generate_supplier_commission_invoice()
+            self.generate_customers_commission_invoices()
+            self.db_set("commission_invoice_reference", ",".join(self.commission_invoice_refs))
 
     def on_cancel(self):
         self.cancel_commission_invoice()
@@ -45,26 +50,27 @@ class InvoiceForm(Document):
         commission_item = self.settings.get("commission_item")
         if commission_item:
             self.set("commissions", [])
-            commission_percentage = get_party_commission_percentage("Customer", self.supplier)
+            supplier_commission_percentage = get_supplier_commission_percentage(self.supplier)
 
             default_tax_template = get_tax_template(self)
             tax_rate = frappe.db.get_value("Sales Taxes and Charges",
                                            {"parent": default_tax_template}, "rate") or 0
 
-            price_after_commission = (self.grand_total * commission_percentage) / 100
+            commission_amount = (self.grand_total * supplier_commission_percentage) / 100
+            total_after_commission = self.grand_total + commission_amount
             commission_total_with_taxes = (
-                    price_after_commission + ((price_after_commission * tax_rate) / 100)
+                    commission_amount + ((total_after_commission * tax_rate) / 100)
             )
             self.append("commissions", {
                 "item": commission_item,
                 "price": self.grand_total,
-                "commission": commission_percentage,
+                "commission": supplier_commission_percentage,
                 "taxes": tax_rate,
                 "commission_total": commission_total_with_taxes
             })
             self.total_commissions_and_taxes = commission_total_with_taxes
             for item in self.items:
-                item.commission = (item.total * commission_percentage) / 100
+                item.commission = (item.total * supplier_commission_percentage) / 100
 
     def make_gl_entries(self):
         gl_entries = []
@@ -168,7 +174,7 @@ class InvoiceForm(Document):
                 if new_gle["debit"] or new_gle["credit"]:
                     make_entry(new_gle, False, "Yes")
 
-    def generate_commission_invoice(self):
+    def generate_supplier_commission_invoice(self):
         if len(self.commissions) == 0:
             return
 
@@ -183,30 +189,64 @@ class InvoiceForm(Document):
             total_commission += (it.price * it.commission) / 100
 
         # Generate the commission sales invoice
-        pos_profile = frappe.get_doc("POS Profile", self.settings.get("pos_profile"))
-        commission_invoice = create_commission_invoice(self, supplier_related_customer, pos_profile,
+        commission_invoice = create_commission_invoice(self, supplier_related_customer, self.pos_profile,
                                                        total_commission)
-        self.db_set("commission_invoice_reference", commission_invoice.name)
+        self.commission_invoice_refs.append(commission_invoice.name)
+
+    def generate_customers_commission_invoices(self):
+        customers = []
+        si_entries = []
+        commission_invoice_refs = []
+        for it in self.items:
+            if it.customer in customers:
+                customer_record = [d["items"][0] for d in si_entries if d.get("customer") == it.customer][0]
+                customer_record.update({
+                    "rate": customer_record["rate"] + it.customer_commission,
+                })
+            else:
+                si_entries.append({
+                    "customer": it.customer,
+                    "is_pos": 1,
+                    "pos_profile": self.pos_profile.get("name"),
+                    "items": [{
+                        "item_code": self.settings.get("commission_item"),
+                        "description": self.settings.get("commission_item") + "\n" + self.name,
+                        "qty": 1,
+                        "rate": it.customer_commission
+                    }]
+                })
+                customers.append(it.customer)
+
+        for entry in si_entries:
+            customer_total_commission = entry["items"][0]["rate"]
+            if customer_total_commission:
+                commission_invoice = create_commission_invoice(self, entry["customer"], self.pos_profile,
+                                                               entry["items"][0]["rate"])
+                self.commission_invoice_refs.append(commission_invoice.name)
 
     def cancel_commission_invoice(self):
         if self.commission_invoice_reference:
-            commission_invoice = frappe.get_doc("Sales Invoice", self.commission_invoice_reference)
-            if commission_invoice.docstatus == 0:
-                delete_reference_invoice(commission_invoice)
-                self.db_set("commission_invoice_reference", "")
-            if commission_invoice.docstatus == 1:
-                commission_invoice.cancel()
+            commission_invoices_ids = self.commission_invoice_reference.split(",")
+            for invoice_id in commission_invoices_ids:
+                commission_invoice = frappe.get_doc("Sales Invoice", invoice_id)
+                if commission_invoice.docstatus == 0:
+                    delete_reference_invoice(commission_invoice)
+                    self.db_set("commission_invoice_reference", "")
+                if commission_invoice.docstatus == 1:
+                    commission_invoice.cancel()
 
     def delete_commission_invoice(self):
         if self.commission_invoice_reference:
-            commission_invoice = frappe.get_doc("Sales Invoice", self.commission_invoice_reference)
-            if commission_invoice.docstatus == 2:
-                delete_reference_invoice(commission_invoice)
-            else:
-                if commission_invoice.docstatus == 0:
+            commission_invoices_ids = self.commission_invoice_reference.split(",")
+            for invoice_id in commission_invoices_ids:
+                commission_invoice = frappe.get_doc("Sales Invoice", invoice_id)
+                if commission_invoice.docstatus == 2:
                     delete_reference_invoice(commission_invoice)
-                if commission_invoice.docstatus == 1:
-                    commission_invoice.cancel()
+                else:
+                    if commission_invoice.docstatus == 0:
+                        delete_reference_invoice(commission_invoice)
+                    if commission_invoice.docstatus == 1:
+                        commission_invoice.cancel()
 
     def make_gl_dict_for_commission(self, gl_entries, company_defaults):
         if len(self.commissions) != 0:
@@ -252,6 +292,14 @@ class InvoiceForm(Document):
                 "transaction_exchange_rate": 1
             })
 
+    def update_customer_commission(self):
+        for item in self.items:
+            customer_doc = frappe.get_doc("Customer", item.customer)
+            if customer_doc.commission_type and customer_doc.commission_type.lower() == "percent":
+                item.customer_commission = (item.total * customer_doc.commission) / 100
+            elif customer_doc.commission_type and customer_doc.commission_type.lower() == "amount":
+                item.customer_commission = (item.qty * customer_doc.commission)
+
 
 def set_as_cancel(voucher_type, voucher_no):
     """
@@ -265,23 +313,25 @@ def set_as_cancel(voucher_type, voucher_no):
     )
 
 
-def get_party_commission_percentage(party_type, party):
+def get_supplier_commission_percentage(supplier):
     """
-    Returns the commission percentage for the given `party`.
-    Will first search in party (Customer / Supplier) record, if not found,
-    will search in group (Customer Group / Supplier Group),
+    Returns the commission percentage for the given `supplier`.
+    Will first search in party (Supplier) record, if not found,
+    will search in group (Supplier Group),
     finally will return default."""
 
+    apply_commission = frappe.db.get_value("Supplier", supplier, "apply_commission")
+    if not apply_commission:
+        return 0
+
     # Get the percentage from the party doc
-    commission_percentage = frappe.db.get_value(party_type, party, "commission_percentage")
+    commission_percentage = frappe.db.get_value("Supplier", supplier, "commission_percentage")
     if commission_percentage:
         return commission_percentage
 
     # Get the percentage from the party group doc
-    party_group_doctype = "Customer Group" if party_type == "Customer" else "Supplier Group"
-    group_field_name = "customer_group" if party_type == "Customer" else "supplier_group"
-    party_group = frappe.db.get_value(party_type, party, group_field_name)
-    commission_percentage = frappe.db.get_value(party_group_doctype, party_group, "commission_percentage")
+    party_group = frappe.db.get_value("Supplier", supplier, "supplier_group")
+    commission_percentage = frappe.db.get_value("Supplier Group", party_group, "commission_percentage")
     if commission_percentage:
         return commission_percentage
 
@@ -289,10 +339,10 @@ def get_party_commission_percentage(party_type, party):
     return frappe.get_single("Agriculture Settings").get("customer_commission_percentage", 0)
 
 
-def create_commission_invoice(invoice, supplier_related_customer, pos_profile, total_commission):
+def create_commission_invoice(invoice, customer, pos_profile, total_commission):
     commission_invoice = frappe.new_doc("Sales Invoice")
     commission_invoice.update({
-        "customer": supplier_related_customer,
+        "customer": customer,
         "is_pos": 1,
         "pos_profile": pos_profile.get("name")
     })

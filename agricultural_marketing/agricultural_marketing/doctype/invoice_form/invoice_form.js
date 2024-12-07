@@ -206,8 +206,8 @@ function calculate_total_line(frm) {
 
 function calculate_total_commission_line(frm) {
     let row = frm.selected_doc;
-    row.taxes = (row.taxes) ? row.taxes: 0;
-    row.commission = (row.commission) ? row.commission: 0;
+    row.taxes = (row.taxes) ? row.taxes: null;
+    row.commission = (row.commission) ? row.commission: null;
     row.commission_total = row.commission + row.taxes;
     frm.refresh_field('commissions');
 }
