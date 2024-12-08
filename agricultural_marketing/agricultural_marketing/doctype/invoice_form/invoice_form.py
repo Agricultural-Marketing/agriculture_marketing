@@ -191,6 +191,7 @@ class InvoiceForm(Document):
         commission_invoice = create_commission_invoice(self, supplier_related_customer, self.pos_profile,
                                                        total_commission)
         self.db_set("supplier_commission_invoice_reference", commission_invoice.name)
+        self.db_set("has_supplier_commission_invoice", 1)
 
     def generate_customers_commission_invoices(self):
         customers = []
@@ -223,6 +224,7 @@ class InvoiceForm(Document):
                                                                entry["items"][0]["rate"])
                 self.customer_commission_invoice_refs.append(commission_invoice.name)
         self.db_set("customer_commission_invoices_reference", ",".join(self.customer_commission_invoice_refs))
+        self.db_set("has_customer_commission_invoices", 1)
 
     def cancel_commission_invoice(self):
         commission_invoices_ids = []
@@ -236,6 +238,9 @@ class InvoiceForm(Document):
                     delete_reference_invoice(commission_invoice)
                     self.db_set("supplier_commission_invoice_reference", "")
                     self.db_set("customer_commission_invoices_reference", "")
+                    self.db_set("has_supplier_commission_invoice", 0)
+                    self.db_set("has_customer_commission_invoices", 0)
+
                 if commission_invoice.docstatus == 1:
                     commission_invoice.cancel()
 
