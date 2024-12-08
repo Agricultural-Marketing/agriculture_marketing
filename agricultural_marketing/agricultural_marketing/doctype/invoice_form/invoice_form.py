@@ -12,7 +12,7 @@ import copy
 class InvoiceForm(Document):
     settings = frappe.get_single("Agriculture Settings")
     pos_profile = frappe.get_doc("POS Profile", settings.get("pos_profile"))
-    commission_invoice_refs = []
+    customer_commission_invoice_refs = []
 
     def validate(self):
         self.update_grand_total()
@@ -24,7 +24,6 @@ class InvoiceForm(Document):
         if self.settings.get("generate_commission_invoices_automatically"):
             self.generate_supplier_commission_invoice()
             self.generate_customers_commission_invoices()
-            self.db_set("commission_invoice_reference", ",".join(self.commission_invoice_refs))
 
     def on_cancel(self):
         self.cancel_commission_invoice()
@@ -191,7 +190,7 @@ class InvoiceForm(Document):
         # Generate the commission sales invoice
         commission_invoice = create_commission_invoice(self, supplier_related_customer, self.pos_profile,
                                                        total_commission)
-        self.commission_invoice_refs.append(commission_invoice.name)
+        self.db_set("supplier_commission_invoice_reference", commission_invoice.name)
 
     def generate_customers_commission_invoices(self):
         customers = []
@@ -222,22 +221,30 @@ class InvoiceForm(Document):
             if customer_total_commission:
                 commission_invoice = create_commission_invoice(self, entry["customer"], self.pos_profile,
                                                                entry["items"][0]["rate"])
-                self.commission_invoice_refs.append(commission_invoice.name)
+                self.customer_commission_invoice_refs.append(commission_invoice.name)
+        self.db_set("customer_commission_invoices_reference", ",".join(self.customer_commission_invoice_refs))
 
     def cancel_commission_invoice(self):
-        if self.commission_invoice_reference:
-            commission_invoices_ids = self.commission_invoice_reference.split(",")
+        commission_invoices_ids = []
+        if self.supplier_commission_invoice_reference:
+            commission_invoices_ids.append(self.supplier_commission_invoice_reference)
+        if self.customer_commission_invoices_reference:
+            commission_invoices_ids.append(self.customer_commission_invoices_reference.split(","))
             for invoice_id in commission_invoices_ids:
                 commission_invoice = frappe.get_doc("Sales Invoice", invoice_id)
                 if commission_invoice.docstatus == 0:
                     delete_reference_invoice(commission_invoice)
-                    self.db_set("commission_invoice_reference", "")
+                    self.db_set("supplier_commission_invoice_reference", "")
+                    self.db_set("customer_commission_invoices_reference", "")
                 if commission_invoice.docstatus == 1:
                     commission_invoice.cancel()
 
     def delete_commission_invoice(self):
-        if self.commission_invoice_reference:
-            commission_invoices_ids = self.commission_invoice_reference.split(",")
+        commission_invoices_ids = []
+        if self.supplier_commission_invoice_reference:
+            commission_invoices_ids.append(self.supplier_commission_invoice_reference)
+        if self.customer_commission_invoices_reference:
+            commission_invoices_ids.append(self.customer_commission_invoices_reference.split(","))
             for invoice_id in commission_invoices_ids:
                 commission_invoice = frappe.get_doc("Sales Invoice", invoice_id)
                 if commission_invoice.docstatus == 2:
