@@ -30,6 +30,14 @@ frappe.pages['commission-management'].on_page_load = function(wrapper) {
 	});
     toDate.$wrapper.removeClass('col-md-2').addClass('col-md-4');
 
+    let postingDate = page.add_field({
+	    label: 'Posting Date',
+	    fieldtype: 'Date',
+	    fieldname: 'posting_date',
+	    default: frappe.datetime.get_today()
+	});
+    postingDate.$wrapper.removeClass('col-md-2').addClass('col-md-4');
+
     // Bind a manual change event to the input field
     toDate.$input.on('change', function() {
         // Check if the field is empty
@@ -98,32 +106,43 @@ frappe.pages['commission-management'].on_page_load = function(wrapper) {
         }
         validateMandatoryFilters(final_filters);
         frappe.call({
-            method: 'agricultural_marketing.agricultural_marketing.page.commission_management.commission_management.execute',
+            method: 'agricultural_marketing.agricultural_marketing.page.commission_management.commission_management.get_invoices',
             args : {
                 filters: final_filters
             },
             callback: function (r) {
-                if (r.message.length) {
-                    $(frappe.render_template("commission_management", {data: r.message})).appendTo(page.body);
+                if (r.message["success"] == true && r.message["invoices"].length) {
+                    console.log(r);
                     let $btn = page.set_primary_action( __('Create Invoices'), () => {
                         frappe.dom.freeze('Processing...');
                         frappe.call({
                             method: 'agricultural_marketing.agricultural_marketing.page.commission_management.commission_management.generate_commission_invoices',
                             args : {
-                                invoices: r.message,
+                                invoices: r.message["invoices"],
                                 filters: final_filters
                             },
                             callback: function (r) {
+                                console.log(r);
                                 frappe.dom.unfreeze();
-                                frappe.msgprint(r.message);
-                                let $btn = page.set_primary_action( __('Get Party Invoices'), () => {
-                                    get_invoices(page.fields_dict);
-                                });
+                                if (r.message["failed_invoices"].length) {
+                                    $(frappe.render_template("commission_management", {data: r.message["failed_invoices"]})).appendTo(page.body);
+                                    frappe.msgprint(r.message["msg"]);
+                                    let $btn = page.set_primary_action( __('Get Party Invoices'), () => {
+                                        get_invoices(page.fields_dict);
+                                    });
+                                } else {
+                                    frappe.msgprint(r.message["msg"]);
+                                    setTimeout(() => {
+                            			window.location.reload();
+                                    }, 5000);
+                                }
                             },
                         });
                     });
-                } else {
-                    frappe.msgprint("Party has no data to show.");
+                } else if (r.message["success"] == true && !r.message["invoices"].length) {
+                    frappe.msgprint("There is no data to show.");
+                } else if (r.message["success"] == false) {
+                    frappe.throw(r.message["msg"])
                 }
             },
         });

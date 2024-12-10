@@ -22,8 +22,8 @@ class InvoiceForm(Document):
     def on_submit(self):
         self.make_gl_entries()
         if self.settings.get("generate_commission_invoices_automatically"):
-            self.generate_supplier_commission_invoice()
-            self.generate_customers_commission_invoices()
+            self.generate_supplier_commission_invoice(self.posting_date)
+            self.generate_customers_commission_invoices(self.posting_date)
 
     def on_cancel(self):
         self.cancel_commission_invoice()
@@ -173,7 +173,7 @@ class InvoiceForm(Document):
                 if new_gle["debit"] or new_gle["credit"]:
                     make_entry(new_gle, False, "Yes")
 
-    def generate_supplier_commission_invoice(self):
+    def generate_supplier_commission_invoice(self, posting_date):
         if len(self.commissions) == 0:
             return
 
@@ -189,11 +189,11 @@ class InvoiceForm(Document):
 
         # Generate the commission sales invoice
         commission_invoice = create_commission_invoice(self, supplier_related_customer, self.pos_profile,
-                                                       total_commission)
+                                                       total_commission, posting_date)
         self.db_set("supplier_commission_invoice_reference", commission_invoice.name)
         self.db_set("has_supplier_commission_invoice", 1)
 
-    def generate_customers_commission_invoices(self):
+    def generate_customers_commission_invoices(self, posting_date):
         customers = []
         si_entries = []
         commission_invoice_refs = []
@@ -221,7 +221,7 @@ class InvoiceForm(Document):
             customer_total_commission = entry["items"][0]["rate"]
             if customer_total_commission:
                 commission_invoice = create_commission_invoice(self, entry["customer"], self.pos_profile,
-                                                               entry["items"][0]["rate"])
+                                                               entry["items"][0]["rate"], posting_date)
                 self.customer_commission_invoice_refs.append(commission_invoice.name)
         self.db_set("customer_commission_invoices_reference", ",".join(self.customer_commission_invoice_refs))
         self.db_set("has_customer_commission_invoices", 1)
@@ -351,12 +351,13 @@ def get_supplier_commission_percentage(supplier):
     return frappe.get_single("Agriculture Settings").get("customer_commission_percentage", 0)
 
 
-def create_commission_invoice(invoice, customer, pos_profile, total_commission):
+def create_commission_invoice(invoice, customer, pos_profile, total_commission, posting_date):
     commission_invoice = frappe.new_doc("Sales Invoice")
     commission_invoice.update({
         "customer": customer,
         "is_pos": 1,
-        "pos_profile": pos_profile.get("name")
+        "pos_profile": pos_profile.get("name"),
+        "posting_date": posting_date
     })
     commission_invoice.append("items", {
         "item_code": invoice.settings.get("commission_item"),
