@@ -112,7 +112,6 @@ frappe.pages['commission-management'].on_page_load = function(wrapper) {
             },
             callback: function (r) {
                 if (r.message["success"] == true && r.message["invoices"].length) {
-                    console.log(r);
                     let $btn = page.set_primary_action( __('Create Invoices'), () => {
                         frappe.dom.freeze('Processing...');
                         frappe.call({
@@ -122,7 +121,6 @@ frappe.pages['commission-management'].on_page_load = function(wrapper) {
                                 filters: final_filters
                             },
                             callback: function (r) {
-                                console.log(r);
                                 frappe.dom.unfreeze();
                                 if (r.message["failed_invoices"].length) {
                                     $(frappe.render_template("commission_management", {data: r.message["failed_invoices"]})).appendTo(page.body);
@@ -161,10 +159,6 @@ frappe.pages['commission-management'].on_page_load = function(wrapper) {
         if (!filters['party_type']) {
             frappe.dom.unfreeze();
             error.push(__('Party Type'))
-        }
-        if (!filters['party']) {
-            frappe.dom.unfreeze();
-            error.push(__('Party'))
         }
         if (error.length) {
             frappe.throw({
