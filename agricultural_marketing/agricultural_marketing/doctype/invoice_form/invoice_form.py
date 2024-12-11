@@ -56,10 +56,8 @@ class InvoiceForm(Document):
                                            {"parent": default_tax_template}, "rate") or 0
 
             commission_amount = (self.grand_total * supplier_commission_percentage) / 100
-            total_after_commission = self.grand_total + commission_amount
-            commission_total_with_taxes = (
-                    commission_amount + ((total_after_commission * tax_rate) / 100)
-            )
+            tax_amount = (commission_amount * tax_rate) / 100
+            commission_total_with_taxes = commission_amount + tax_amount
             self.append("commissions", {
                 "item": commission_item,
                 "price": self.grand_total,
@@ -261,7 +259,7 @@ class InvoiceForm(Document):
                         commission_invoice.cancel()
 
     def make_gl_dict_for_commission(self, gl_entries, company_defaults):
-        if len(self.commissions) != 0:
+        if len(self.commissions) != 0 and self.total_commissions_and_taxes:
             mops = frappe.get_doc("POS Profile", self.settings.get("pos_profile")).get("payments")
             for mop in mops:
                 if mop.default:
