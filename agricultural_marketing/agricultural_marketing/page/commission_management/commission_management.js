@@ -111,20 +111,21 @@ frappe.pages['commission-management'].on_page_load = function(wrapper) {
                 filters: final_filters
             },
             callback: function (r) {
-                if (r.message["success"] == true && r.message["invoices"].length) {
+                console.log(r.message["data"]);
+                if (r.message["success"] == true && r.message["data"]) {
                     let $btn = page.set_primary_action( __('Create Invoices'), () => {
                         frappe.dom.freeze('Processing...');
                         frappe.call({
                             method: 'agricultural_marketing.agricultural_marketing.page.commission_management.commission_management.generate_commission_invoices',
                             args : {
-                                invoices: r.message["invoices"],
+                                data: r.message["data"],
                                 filters: final_filters
                             },
                             callback: function (r) {
                                 frappe.dom.unfreeze();
-                                if (r.message["failed_invoices"].length) {
-                                    $(frappe.render_template("commission_management", {data: r.message["failed_invoices"]})).appendTo(page.body);
-                                    frappe.msgprint(r.message["msg"]);
+                                if (r.message["data"].length) {
+                                    $(frappe.render_template("commission_management", {data: r.message["data"]})).appendTo(page.body);
+                                    frappe.throw(r.message["msg"]);
                                     let $btn = page.set_primary_action( __('Get Party Invoices'), () => {
                                         get_invoices(page.fields_dict);
                                     });
@@ -137,7 +138,7 @@ frappe.pages['commission-management'].on_page_load = function(wrapper) {
                             },
                         });
                     });
-                } else if (r.message["success"] == true && !r.message["invoices"].length) {
+                } else if (r.message["success"] == true && !r.message["data"]) {
                     frappe.msgprint("There is no data to show.");
                 } else if (r.message["success"] == false) {
                     frappe.throw(r.message["msg"])
