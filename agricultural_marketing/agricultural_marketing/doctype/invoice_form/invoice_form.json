@@ -29,10 +29,6 @@
   "commissions",
   "section_break_fkjw",
   "has_supplier_commission_invoice",
-  "supplier_commission_invoice_reference",
-  "column_break_royu",
-  "has_customer_commission_invoices",
-  "customer_commission_invoices_reference",
   "pampers_commissions_section",
   "pamper_commissions",
   "section_break_cwcc",
@@ -203,19 +199,6 @@
    "read_only": 1
   },
   {
-   "fieldname": "supplier_commission_invoice_reference",
-   "fieldtype": "Data",
-   "label": "Supplier Commission Invoice Reference",
-   "options": "Sales Invoice",
-   "read_only": 1
-  },
-  {
-   "fieldname": "customer_commission_invoices_reference",
-   "fieldtype": "Text",
-   "label": "Customer Commission Invoices Reference",
-   "read_only": 1
-  },
-  {
    "fieldname": "section_break_fkjw",
    "fieldtype": "Section Break"
   },
@@ -225,23 +208,12 @@
    "fieldtype": "Check",
    "label": "Has Supplier Commission Invoice",
    "read_only": 1
-  },
-  {
-   "fieldname": "column_break_royu",
-   "fieldtype": "Column Break"
-  },
-  {
-   "default": "0",
-   "fieldname": "has_customer_commission_invoices",
-   "fieldtype": "Check",
-   "label": "Has Customer Commission Invoices",
-   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2024-12-08 16:53:58.178691",
+ "modified": "2024-12-15 18:10:52.823709",
  "modified_by": "Administrator",
  "module": "Agricultural Marketing",
  "name": "Invoice Form",

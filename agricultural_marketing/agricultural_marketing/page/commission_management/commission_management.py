@@ -5,7 +5,7 @@ from pypika.functions import Sum
 import frappe
 from frappe import _
 from agricultural_marketing.agricultural_marketing.doctype.invoice_form.invoice_form import (
-    get_supplier_commission_percentage)
+    get_supplier_commission_percentage, create_customer_commission_transaction)
 from frappe.utils import getdate
 
 
@@ -34,12 +34,12 @@ def get_invoices(filters):
 
         prev_invoices = query.where(inv_form.posting_date.lt(from_date)).run(as_dict=True)
 
-        if prev_invoices:
-            return {
-                "data": {},
-                "success": False,
-                "msg": _("There are commission invoices that were not created before this duration.")
-            }
+        # if prev_invoices:
+        #     return {
+        #         "data": {},
+        #         "success": False,
+        #         "msg": _("There are commission invoices that were not created before this duration.")
+        #     }
 
         invoices = query.where(inv_form.posting_date.between(from_date, to_date)).run(as_dict=True)
         if invoices:
@@ -57,19 +57,19 @@ def get_invoices(filters):
         query = frappe.qb.from_(inv_form).join(inv_frmitem).on(inv_frmitem.parent == inv_form.name).select(
             inv_frmitem.parent.as_("invoice_id"), inv_frmitem.customer,
             inv_frmitem.customer_commission.as_("total")).where(
-            inv_form.has_customer_commission_invoices == 0).where(inv_form.docstatus == 1)
+            inv_frmitem.has_commission_invoice == 0).where(inv_form.docstatus == 1)
 
         if party:
             query = query.where(inv_frmitem.customer == party)
 
         prev_invoices = query.where(inv_form.posting_date.lt(from_date)).groupby(inv_frmitem.parent).run(as_dict=True)
 
-        if prev_invoices:
-            return {
-                "data": {},
-                "success": False,
-                "msg": _("There are commission invoices that were not created before this duration.")
-            }
+        # if prev_invoices:
+        #     return {
+        #         "data": {},
+        #         "success": False,
+        #         "msg": _("There are commission invoices that were not created before this duration.")
+        #     }
 
         invoices = query.where(inv_form.posting_date.between(from_date, to_date)).run(as_dict=True)
 
@@ -127,7 +127,8 @@ def create_commission_invoices(parties, posting_date, party_type):
                 "customer": customer,
                 "is_pos": 1,
                 "pos_profile": pos_profile.get("name"),
-                "posting_date": posting_date
+                "posting_date": posting_date,
+                "is_commission_invoice": 1
             })
             for invoice in party_invoices:
                 if invoice.get("total"):
@@ -135,7 +136,8 @@ def create_commission_invoices(parties, posting_date, party_type):
                         "item_code": settings.get("commission_item"),
                         "description": settings.get("commission_item") + "\n" + invoice.get("invoice_id"),
                         "qty": 1,
-                        "rate": invoice.get("total")
+                        "rate": invoice.get("total"),
+                        "invoice_form": invoice.get("invoice_id")
                     })
             default_tax_template = get_tax_template(settings)
             commission_invoice.update({
@@ -153,17 +155,13 @@ def create_commission_invoices(parties, posting_date, party_type):
             commission_invoice.save()
 
             for invoice in party_invoices:
+                invoice_form_doc = frappe.get_doc("Invoice Form", invoice.get("invoice_id"))
                 if party_type == "Supplier":
-                    frappe.db.set_value("Invoice Form", invoice.get("invoice_id"),
-                                        "supplier_commission_invoice_reference",
-                                        commission_invoice.name)
-                    frappe.db.set_value("Invoice Form", invoice.get("invoice_id"), "has_supplier_commission_invoice", 1)
+                    frappe.db.set_value("Invoice Form", invoice_form_doc.name, "has_supplier_commission_invoice", 1)
                 else:
-                    frappe.db.set_value("Invoice Form", invoice.get("invoice_id"),
-                                        "customer_commission_invoices_reference",
-                                        commission_invoice.name)
-                    frappe.db.set_value("Invoice Form", invoice.get("invoice_id"), "has_customer_commission_invoices",
-                                        1)
+                    for line in invoice_form_doc.items:
+                        if line.get("customer") == customer:
+                            frappe.db.set_value("Invoice Form Item", line.name, "has_commission_invoice", 1)
         except Exception as e:
             failed_invoices.append({
                 "invoice_id": invoice.get("invoice_id"),

@@ -19,6 +19,7 @@
   "section_break_horw",
   "customer",
   "customer_commission",
+  "has_commission_invoice",
   "column_break_dugc",
   "pamper"
  ],
@@ -123,12 +124,18 @@
    "label": "Customer commission",
    "options": "currency",
    "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "has_commission_invoice",
+   "fieldtype": "Check",
+   "label": "Has Commission Invoice"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2024-12-08 01:30:56.049263",
+ "modified": "2024-12-15 00:31:31.004321",
  "modified_by": "Administrator",
  "module": "Agricultural Marketing",
  "name": "Invoice Form Item",
