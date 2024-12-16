@@ -417,12 +417,3 @@ def build_pdf_template_context(filters):
                 as_dict=True)
 
     return res
-
-
-def create_customer_commission_transaction(invoice_form_name, customer, commission_invoice_name):
-    frappe.get_doc({
-        "doctype": "Customer Commission Transaction",
-        "customer": customer,
-        "invoice_form": invoice_form_name,
-        "commission_invoice": commission_invoice_name
-    }).insert(ignore_permissions=True)

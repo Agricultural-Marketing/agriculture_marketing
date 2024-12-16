@@ -1,11 +1,8 @@
 import json
-
-from pypika.functions import Sum
-
 import frappe
 from frappe import _
 from agricultural_marketing.agricultural_marketing.doctype.invoice_form.invoice_form import (
-    get_supplier_commission_percentage, create_customer_commission_transaction)
+    get_supplier_commission_percentage)
 from frappe.utils import getdate
 
 
@@ -34,12 +31,12 @@ def get_invoices(filters):
 
         prev_invoices = query.where(inv_form.posting_date.lt(from_date)).run(as_dict=True)
 
-        # if prev_invoices:
-        #     return {
-        #         "data": {},
-        #         "success": False,
-        #         "msg": _("There are commission invoices that were not created before this duration.")
-        #     }
+        if prev_invoices:
+            return {
+                "data": {},
+                "success": False,
+                "msg": _("There are commission invoices that were not created before this duration.")
+            }
 
         invoices = query.where(inv_form.posting_date.between(from_date, to_date)).run(as_dict=True)
         if invoices:
@@ -64,12 +61,12 @@ def get_invoices(filters):
 
         prev_invoices = query.where(inv_form.posting_date.lt(from_date)).groupby(inv_frmitem.parent).run(as_dict=True)
 
-        # if prev_invoices:
-        #     return {
-        #         "data": {},
-        #         "success": False,
-        #         "msg": _("There are commission invoices that were not created before this duration.")
-        #     }
+        if prev_invoices:
+            return {
+                "data": {},
+                "success": False,
+                "msg": _("There are commission invoices that were not created before this duration.")
+            }
 
         invoices = query.where(inv_form.posting_date.between(from_date, to_date)).run(as_dict=True)
 
