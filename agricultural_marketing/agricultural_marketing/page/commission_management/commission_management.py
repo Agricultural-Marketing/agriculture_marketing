@@ -54,7 +54,8 @@ def get_invoices(filters):
         query = frappe.qb.from_(inv_form).join(inv_frmitem).on(inv_frmitem.parent == inv_form.name).select(
             inv_frmitem.parent.as_("invoice_id"), inv_frmitem.customer,
             inv_frmitem.customer_commission.as_("total")).where(
-            inv_frmitem.has_commission_invoice == 0).where(inv_form.docstatus == 1)
+            inv_frmitem.has_commission_invoice == 0).where(inv_form.docstatus == 1).where(
+            inv_frmitem.customer_commission != 0)
 
         if party:
             query = query.where(inv_frmitem.customer == party)
@@ -118,6 +119,9 @@ def create_commission_invoices(parties, posting_date, party_type):
         customer = frappe.db.get_value("Supplier", party, "related_customer") if party_type == "Supplier" else party
         if party_type == "Supplier" and not customer:
             continue
+
+        item = settings.get("supplier_commission_item") if party_type == "Supplier" else settings.get(
+            "customer_commission_item")
         try:
             commission_invoice = frappe.new_doc("Sales Invoice")
             commission_invoice.update({
@@ -130,8 +134,8 @@ def create_commission_invoices(parties, posting_date, party_type):
             for invoice in party_invoices:
                 if invoice.get("total"):
                     commission_invoice.append("items", {
-                        "item_code": settings.get("commission_item"),
-                        "description": settings.get("commission_item") + "\n" + invoice.get("invoice_id"),
+                        "item_code": item,
+                        "description": item + "\n" + invoice.get("invoice_id"),
                         "qty": 1,
                         "rate": invoice.get("total"),
                         "invoice_form": invoice.get("invoice_id")

@@ -46,8 +46,8 @@ class InvoiceForm(Document):
 
     def update_commission_and_taxes(self):
         self.total_commissions_and_taxes = 0
-        commission_item = self.settings.get("commission_item")
-        if commission_item:
+        supplier_commission_item = self.settings.get("supplier_commission_item")
+        if supplier_commission_item:
             self.set("commissions", [])
             supplier_commission_percentage = get_supplier_commission_percentage(self.supplier)
 
@@ -59,7 +59,7 @@ class InvoiceForm(Document):
             tax_amount = (commission_amount * tax_rate) / 100
             commission_total_with_taxes = commission_amount + tax_amount
             self.append("commissions", {
-                "item": commission_item,
+                "item": supplier_commission_item,
                 "price": self.grand_total,
                 "commission": supplier_commission_percentage,
                 "taxes": tax_rate,
@@ -186,8 +186,8 @@ class InvoiceForm(Document):
             total_commission += (it.price * it.commission) / 100
 
         # Generate the commission sales invoice
-        create_commission_invoice(self, supplier_related_customer, self.pos_profile,
-                                  total_commission, posting_date)
+        create_commission_invoice(self, supplier_related_customer, self.pos_profile, total_commission, posting_date,
+                                  "Supplier")
         self.db_set("has_supplier_commission_invoice", 1)
 
     def generate_customers_commission_invoices(self, posting_date):
@@ -205,8 +205,8 @@ class InvoiceForm(Document):
                     "is_pos": 1,
                     "pos_profile": self.pos_profile.get("name"),
                     "items": [{
-                        "item_code": self.settings.get("commission_item"),
-                        "description": self.settings.get("commission_item") + "\n" + self.name,
+                        "item_code": self.settings.get("customer_commission_item"),
+                        "description": self.settings.get("customer_commission_item") + "\n" + self.name,
                         "qty": 1,
                         "rate": it.customer_commission
                     }]
@@ -217,8 +217,8 @@ class InvoiceForm(Document):
         for entry in si_entries:
             customer_total_commission = entry["items"][0]["rate"]
             if customer_total_commission:
-                create_commission_invoice(self, entry["customer"], self.pos_profile,
-                                          entry["items"][0]["rate"], posting_date)
+                create_commission_invoice(self, entry["customer"], self.pos_profile, entry["items"][0]["rate"],
+                                          posting_date, "Customer")
 
     def cancel_commission_invoice(self):
 
@@ -341,7 +341,9 @@ def get_supplier_commission_percentage(supplier):
     return frappe.get_single("Agriculture Settings").get("customer_commission_percentage", 0)
 
 
-def create_commission_invoice(invoice, customer, pos_profile, total_commission, posting_date):
+def create_commission_invoice(invoice, customer, pos_profile, total_commission, posting_date, party_type="Supplier"):
+    item = invoice.settings.get("supplier_commission_item") if party_type == "Supplier" else invoice.settings.get(
+        "customer_commission_item")
     commission_invoice = frappe.new_doc("Sales Invoice")
     commission_invoice.update({
         "customer": customer,
@@ -351,8 +353,8 @@ def create_commission_invoice(invoice, customer, pos_profile, total_commission, 
         "is_commission_invoice": 1
     })
     commission_invoice.append("items", {
-        "item_code": invoice.settings.get("commission_item"),
-        "description": invoice.settings.get("commission_item") + "\n" + invoice.name,
+        "item_code": item,
+        "description": item + "\n" + invoice.name,
         "qty": 1,
         "rate": total_commission,
         "invoice_form": invoice.name

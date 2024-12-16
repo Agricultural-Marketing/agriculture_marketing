@@ -52,10 +52,9 @@ def execute(filters):
         "content": content
     })
     file_doc.save(ignore_permissions=True)
-    file_urls.append(file_doc.file_url)
 
     return {
-        "file_urls": file_urls
+        "file_url": file_doc.file_url
     }
 
 

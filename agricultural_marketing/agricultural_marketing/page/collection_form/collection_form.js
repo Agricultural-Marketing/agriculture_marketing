@@ -151,8 +151,8 @@ frappe.pages['collection-form'].on_page_load = function(wrapper) {
                 filters: final_filters
             },
             callback: function (r) {
-                if (r.message.file_urls) {
-                    downloadFiles(r.message.file_urls);
+                if (r.message.file_url) {
+                    downloadFiles(r.message.file_url);
                     frappe.dom.unfreeze();
                 } else if (r.message.error) {
                     frappe.dom.unfreeze();
@@ -166,16 +166,43 @@ frappe.pages['collection-form'].on_page_load = function(wrapper) {
         });
     }
 
-    async function downloadFiles(file_urls) {
-        for (const file_url of file_urls) {
-            await new Promise((resolve, reject) => {
-                open_url_post(frappe.request.url, {
-                    cmd: 'frappe.core.doctype.file.file.download_file',
-                    file_url: file_url,
-                });
-                setTimeout(resolve, 2000);  // Wait for 2 second before downloading the next file
-            });
+
+    function open_pdf(filters) {
+        frappe.dom.freeze('Processing...');
+        var final_filters = {};
+        for (let key in filters) {
+            final_filters[key] = filters[key].value;
         }
+        validateMandatoryFilters(final_filters);
+        frappe.call({
+            method: 'agricultural_marketing.agricultural_marketing.page.collection_form.collection_form.execute',
+            args : {
+                filters: final_filters
+            },
+            callback: function (r) {
+                if (r.message.file_url) {
+                    frappe.dom.unfreeze();
+                    var newWindow = window.open(r.message.file_url);
+                } else if (r.message.error) {
+                    frappe.dom.unfreeze();
+                    frappe.throw({
+                        title : __("No Data"),
+                        indicator: "blue",
+                        message: __(r.message.error)
+                    });
+                }
+            },
+        });
+    }
+
+    async function downloadFiles(file_url) {
+        await new Promise((resolve, reject) => {
+            open_url_post(frappe.request.url, {
+                cmd: 'frappe.core.doctype.file.file.download_file',
+                file_url: file_url,
+            });
+            setTimeout(resolve, 2000);  // Wait for 2 second before downloading the next file
+        });
     }
 
     function validateMandatoryFilters(filters) {
@@ -200,4 +227,6 @@ frappe.pages['collection-form'].on_page_load = function(wrapper) {
         }
     }
     let $btn = page.set_primary_action( __('Generate Collection Form'), () => { get_data(page.fields_dict) });
+    let $btnPDF = page.set_secondary_action( __('Open PDF'), () => { open_pdf(page.fields_dict) });
+
 }

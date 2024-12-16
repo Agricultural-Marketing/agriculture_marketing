@@ -9,7 +9,8 @@
   "calculate_opening_balance_with_totals",
   "customer_commission_percentage",
   "column_break_nyvz",
-  "commission_item",
+  "supplier_commission_item",
+  "customer_commission_item",
   "pos_profile",
   "default_tax"
  ],
@@ -44,22 +45,28 @@
    "options": "POS Profile"
   },
   {
-   "fieldname": "commission_item",
-   "fieldtype": "Link",
-   "label": "Commission Item",
-   "options": "Item"
-  },
-  {
    "default": "0",
    "fieldname": "calculate_opening_balance_with_totals",
    "fieldtype": "Check",
    "label": "Calculate Opening Balance with Totals"
+  },
+  {
+   "fieldname": "supplier_commission_item",
+   "fieldtype": "Link",
+   "label": "Supplier Commission Item",
+   "options": "Item"
+  },
+  {
+   "fieldname": "customer_commission_item",
+   "fieldtype": "Link",
+   "label": "Customer Commission Item",
+   "options": "Item"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2024-09-10 00:32:54.226366",
+ "modified": "2024-12-17 00:54:10.786335",
  "modified_by": "Administrator",
  "module": "Agricultural Marketing",
  "name": "Agriculture Settings",

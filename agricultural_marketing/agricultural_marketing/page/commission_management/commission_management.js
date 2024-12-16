@@ -111,8 +111,8 @@ frappe.pages['commission-management'].on_page_load = function(wrapper) {
                 filters: final_filters
             },
             callback: function (r) {
-                console.log(r.message["data"]);
-                if (r.message["success"] == true && r.message["data"]) {
+                console.log(r.message);
+                if (r.message["success"] == true && Object.keys(r.message["data"]).length) {
                     let $btn = page.set_primary_action( __('Create Invoices'), () => {
                         frappe.dom.freeze('Processing...');
                         frappe.call({
@@ -138,7 +138,7 @@ frappe.pages['commission-management'].on_page_load = function(wrapper) {
                             },
                         });
                     });
-                } else if (r.message["success"] == true && !r.message["data"]) {
+                } else if (r.message["success"] == true && !Object.keys(r.message["data"]).length) {
                     frappe.msgprint("There is no data to show.");
                 } else if (r.message["success"] == false) {
                     frappe.throw(r.message["msg"])
