@@ -43,6 +43,8 @@ def execute(filters):
     }
 
     html = frappe.render_template(html_format, context)
+    if filters.get("open_pdf"):
+        return {"html": html}
     content = _get_pdf(html, {"orientation": "Portrait"})
     file_name = "{0}-{1}.pdf".format("collection-form", str(random.randint(1000, 9999)))
     file_doc = frappe.new_doc("File")

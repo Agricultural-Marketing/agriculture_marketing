@@ -173,6 +173,7 @@ frappe.pages['collection-form'].on_page_load = function(wrapper) {
         for (let key in filters) {
             final_filters[key] = filters[key].value;
         }
+        final_filters["open_pdf"] = true;
         validateMandatoryFilters(final_filters);
         frappe.call({
             method: 'agricultural_marketing.agricultural_marketing.page.collection_form.collection_form.execute',
@@ -180,9 +181,10 @@ frappe.pages['collection-form'].on_page_load = function(wrapper) {
                 filters: final_filters
             },
             callback: function (r) {
-                if (r.message.file_url) {
+                if (r.message.html) {
                     frappe.dom.unfreeze();
-                    var newWindow = window.open(r.message.file_url);
+                    var newWindow = window.open();
+                    newWindow.document.body.innerHTML = r.message.html;
                 } else if (r.message.error) {
                     frappe.dom.unfreeze();
                     frappe.throw({
