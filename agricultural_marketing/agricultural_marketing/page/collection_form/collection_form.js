@@ -163,9 +163,40 @@ frappe.pages['collection-form'].on_page_load = function(wrapper) {
                 filters: final_filters
             },
             callback: function (r) {
-                if (r.message.file_urls) {
-                    downloadFiles(r.message.file_urls);
+                if (r.message.file_url) {
+                    downloadFiles(r.message.file_url);
                     frappe.dom.unfreeze();
+                } else if (r.message.error) {
+                    frappe.dom.unfreeze();
+                    frappe.throw({
+                        title : __("No Data"),
+                        indicator: "blue",
+                        message: __(r.message.error)
+                    });
+                }
+            },
+        });
+    }
+
+
+    function open_pdf(filters) {
+        frappe.dom.freeze('Processing...');
+        var final_filters = {};
+        for (let key in filters) {
+            final_filters[key] = filters[key].value;
+        }
+        final_filters["open_pdf"] = true;
+        validateMandatoryFilters(final_filters);
+        frappe.call({
+            method: 'agricultural_marketing.agricultural_marketing.page.collection_form.collection_form.execute',
+            args : {
+                filters: final_filters
+            },
+            callback: function (r) {
+                if (r.message.html) {
+                    frappe.dom.unfreeze();
+                    var newWindow = window.open();
+                    newWindow.document.body.innerHTML = r.message.html;
                 } else if (r.message.error) {
                     frappe.dom.unfreeze();
                     frappe.throw({
@@ -212,4 +243,6 @@ frappe.pages['collection-form'].on_page_load = function(wrapper) {
         }
     }
     let $btn = page.set_primary_action( __('Generate Collection Form'), () => { get_data(page.fields_dict) });
+    let $btnPDF = page.set_secondary_action( __('Open PDF'), () => { open_pdf(page.fields_dict) });
+
 }
