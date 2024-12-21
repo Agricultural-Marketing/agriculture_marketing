@@ -1,9 +1,6 @@
 import json
 import os
 import random
-
-from IPython.terminal.shortcuts.auto_match import braces
-
 import frappe
 from frappe import _
 from frappe.utils import getdate, flt
@@ -226,6 +223,10 @@ def get_party_summary(filters, party_type, party, party_data):
         debit += gl.debit
         credit += gl.credit
 
+    # GET totals for customers (Opening Balance)
+    if filters.get("party_type") == "Customer":
+        debit = get_opening_from_sales_invoice_for_customer(filters, party, debit)
+
     # GET total items and payments before from date
     if filters.get("consider_draft"):
         total_items = get_draft_total_items(filters, party) or 0
@@ -261,11 +262,18 @@ def get_party_summary(filters, party_type, party, party_data):
     append_summary(_("Duration Selling"), 0, flt(total_sales, 2))
     if filters.get("party_type") == "Supplier":
         append_summary(_("Commission") + " + " + _("VAT"), flt(total_commission_with_taxes, 2), 0)
+    else:
+        append_summary(_("Commission") + " + " + _("VAT"), 0, flt(total_commission_with_taxes, 2))
     append_summary(_("Duration Payments"), flt(total_payments, 2), 0)
 
     # Calculate and append closing
-    total_debit = total_commission_with_taxes + total_payments
-    total_credit = total_sales
+    if filters.get("party_type") == "Supplier":
+        total_debit = total_commission_with_taxes + total_payments
+        total_credit = total_sales
+    else:
+        total_debit = total_payments
+        total_credit = total_sales + total_commission_with_taxes
+
     if switch_columns:
         total_debit, total_credit = total_credit, total_debit
 
@@ -320,6 +328,8 @@ def select_fields_for_invoices(filters, items_query, _field, invform, invformite
 
     if filters.get("party_type") == "Supplier":
         items_query = items_query.select(invformitem.commission)
+    else:
+        items_query = items_query.select(invformitem.customer_commission.as_("commission"))
 
     return items_query
 
@@ -329,7 +339,7 @@ def process_result_and_totals_for_invoices(result, data, filters):
         """Calculate the total quantities, before tax, commission, and taxes."""
         total_qty = sum([it.get('qty') for it in items if it.get('qty')])
         total_before_tax = sum([it.get('total') for it in items if it.get('total')])
-        total_commission = sum([it.get('commission') for it in items]) if filters.get("party_type") == "Supplier" else 0
+        total_commission = sum([it.get('commission') for it in items])
         total_taxes = (total_commission * get_tax_rate()) / 100 if total_commission else 0
         total_commission_with_taxes = total_commission + total_taxes
         return total_qty, total_before_tax, total_commission, total_taxes, total_commission_with_taxes
@@ -463,3 +473,28 @@ def get_draft_total_payments(filters, party):
     total_paid_amount = sum([re["paid_amount"] for re in result if re["paid_amount"]]) or 0
 
     return total_paid_amount
+
+
+def get_opening_from_sales_invoice_for_customer(filters, party, debit):
+    # Get total commission from submitted invoice form which have no commission invoices before the selected date
+    invform = frappe.qb.DocType("Invoice Form")
+    invformitem = frappe.qb.DocType("Invoice Form Item")
+    result = frappe.qb.from_(invform).left_join(invformitem).on(invformitem.parent == invform.name).where(
+        invform.company == filters.get('company')).where(invformitem.customer == party).where(
+        invform.docstatus == 1).where(invform.posting_date.lt(filters.get("from_date"))).where(
+        invformitem.has_commission_invoice == 0).select(Sum(invformitem.customer_commission).as_("total")).run(
+        as_dict=True)
+
+    total_commission = sum([re["total"] for re in result if re["total"]]) or 0
+    total_taxes = (total_commission * get_tax_rate()) / 100
+
+    debit += total_commission + total_taxes
+
+    # Get totals from sales invoice before the selected date
+    sinv = frappe.qb.DocType("Sales Invoice")
+    sinv_result = frappe.qb.from_(sinv).where(sinv.company == filters.get("company")).where(
+        sinv.customer == party).where(sinv.is_commission_invoice == 1).where(sinv.docstatus == 0).where(
+        sinv.posting_date.lt(filters.get("from_date"))).select(sinv.grand_total.as_("total")).run(as_dict=True)
+    debit += sum([re["total"] for re in sinv_result if re["total"]]) or 0
+
+    return debit
