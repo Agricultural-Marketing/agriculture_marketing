@@ -28,6 +28,7 @@ frappe.ui.form.on("Invoice Form", {
                                 dialog.set_df_property("party", "options", partyTypeField.value);
                                 if (partyTypeField.value == "Supplier") {
     					            dialog.set_df_property("party", "hidden", 0);
+    					            dialog.fields_dict["party"].value = frm.doc.supplier;
                                     dialog.set_df_property("customer_type", "hidden", 1);
                                     dialog.set_df_property("customer_type", "reqd", 0);
                                     dialog.set_df_property("party", "get_query", get_query(frm, partyTypeField.value, ""));
@@ -37,7 +38,6 @@ frappe.ui.form.on("Invoice Form", {
                                     dialog.set_df_property("customer_type", "reqd", 1);
                                 }
     					    } else {
-    					        dialog.fields_dict["party"].value = "";
     					        dialog.set_df_property("party", "hidden", 1);
     					        dialog.fields_dict["customer_type"].value = "";
                                 dialog.set_df_property("customer_type", "hidden", 1);
