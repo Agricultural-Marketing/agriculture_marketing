@@ -8,6 +8,8 @@ from erpnext.accounts.party import get_party_account
 from frappe.utils import now
 import copy
 
+from settings_manager.utils.data import money_in_words
+
 
 class InvoiceForm(Document):
     if "agricultural_marketing" in frappe.get_installed_apps():
@@ -341,6 +343,18 @@ def build_pdf_template_context(filters):
 
     if filters.get("party_type") == "Supplier":
         res = [frappe.get_doc(filters.get("reference_doctype"), filters.get("reference_name")).as_dict()]
+        total_commission_percentage = sum([row["commission"] for row in res[0].get("commissions", [])]) or 0
+        total_taxes_rate = sum([row["taxes"] for row in res[0].get("commissions", [])]) or 0
+        total_commission = (res[0].grand_total * total_commission_percentage) / 100 or 0
+        total_taxes = (total_commission * total_taxes_rate) / 100 or 0
+        res[0].update({
+            "total_commission": total_commission,
+            "total_taxes": total_taxes,
+            "net_total": res[0].grand_total - res[0].total_commissions_and_taxes,
+            "net_total_in_words": money_in_words((res[0].grand_total - res[0].total_commissions_and_taxes))
+
+        })
+
     else:
         inv_query = frappe.qb.from_(invform).join(invformitem)
 
@@ -352,7 +366,10 @@ def build_pdf_template_context(filters):
                 invform.name, invform.company, invform.posting_date, invformitem.customer,
                 invformitem.item_name, invformitem.qty, invformitem.price, invformitem.total).run(
                 as_dict=True)
-
+            res[0].update({
+                "net_total": sum([row["total"] for row in res]) or 0,
+                "net_total_in_words": money_in_words(sum([row["total"] for row in res]) or 0)
+            })
         else:
             res = inv_query.on(
                 (invformitem.parent == invform.name) & (invformitem.pamper == filters.get("party"))).where(
@@ -361,5 +378,9 @@ def build_pdf_template_context(filters):
                 invform.name, invform.company, invform.posting_date, invformitem.pamper,
                 invformitem.item_name, invformitem.qty, invformitem.price, invformitem.total).run(
                 as_dict=True)
+            res[0].update({
+                "net_total": sum([row["total"] for row in res]) or 0,
+                "net_total_in_words": money_in_words(sum([row["total"] for row in res]) or 0)
+            })
 
     return res

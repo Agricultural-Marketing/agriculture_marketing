@@ -11,11 +11,9 @@
         position: fixed;
     }
     .header {
-        top: 0px;
         text-decoration: underline;
     }
     .footer {
-        bottom: 0px;
         font-size: 12px;
     }
     .container {
@@ -39,8 +37,11 @@
         width: 25%;
     }
     .details-table {
-        margin-top: 20px;
+        margin-top: 30px;
         padding-top: 50px;
+        padding-right: 10%;
+        padding-left: 10%;
+        text-align: center;
     }
     strong {
         font-size: large;
@@ -52,178 +53,170 @@
 
 </style>
 <body>
-    {% if layout_direction == 'rtl' %}
-        {% set is_rtl = true %}
-    {% else %}
-        {% set is_rtl = false %}
-    {% endif %}
-    {% set is_supplier = false %}
-    {% set is_customer = false %}
-    {% set is_pamper = false %}
+{% if layout_direction == 'rtl' %}
+{% set is_rtl = true %}
+{% else %}
+{% set is_rtl = false %}
+{% endif %}
+{% set is_supplier = false %}
+{% set is_customer = false %}
+{% set is_pamper = false %}
 
-    {% if data %}
-        {% set invoice_basic_info = data[0] %}
-    {% endif %}
+{% if data %}
+{% set invoice_basic_info = data[0] %}
+{% endif %}
 
-     {% if filters['party_type'] == 'Supplier' %}
-        {% set items = data[0]['items'] %}
-        {% set commissions = data[0]['commissions'] %}
-        {% set is_supplier = true %}
-        {% set is_customer = false %}
-        {% set is_pamper = false %}
-    {% else %}
-        {% set items = data %}
-        {% set is_supplier = false %}
-        {% if filters['customer_type'] == 'Customer' %}
-            {% set is_customer = true %}
-            {% set is_pamper = false %}
-        {% else %}
-            {% set is_customer = false %}
-            {% set is_pamper = true %}
-        {% endif %}
-    {% endif %}
+{% if filters['party_type'] == 'Supplier' %}
+{% set items = data[0]['items'] %}
+{% set commissions = data[0]['commissions'] %}
+{% set is_supplier = true %}
+{% set is_customer = false %}
+{% set is_pamper = false %}
+{% else %}
+{% set items = data %}
+{% set is_supplier = false %}
+{% if filters['customer_type'] == 'Customer' %}
+{% set is_customer = true %}
+{% set is_pamper = false %}
+{% else %}
+{% set is_customer = false %}
+{% set is_pamper = true %}
+{% endif %}
+{% endif %}
 <div class="container">
     <!-- Main Content -->
     <!--Header-->
+    <!--Letter head -->
+    {% if letter_head and letter_head.content %}
+    <div>
+        {{ letter_head.content }}
+    </div>
+    {% endif %}
     <div class="header">
-        <h1>
-            {% if is_rtl %} نموذج الفاتورة {% else %} Invoice Form {% endif %}
-        </h1>
+        {% if is_supplier %}
+        {% set invoice_title_ar = 'فاتورة مزارع' %}
+        {% set invoice_title_en = 'Supplier Form' %}
+        {% else %}
+        {% set invoice_title_ar = 'فاتورة مشتري' %}
+        {% set invoice_title_en = 'Customer Form' %}
+        {% endif %}
+        <h1> {% if is_rtl %} {{ invoice_title_ar}} {% else %} {{ invoice_title_en}} {% endif %} </h1>
     </div>
     <!-- Invoice Details -->
     <table class="details-table">
         <tr>
-            <td> <strong>
-                {% if is_rtl %} رقم الفاتورة: {% else %} Invoice No: {% endif %}
-            </strong> {{ invoice_basic_info.name }} </td>
             <td><strong>
-                {% if is_rtl %}
-                    {% if is_supplier %} المورد:
-                {% else %}
-                    {% if is_customer %}
-                        العميل:
-                    {% else %}
-                        الدلال:
-                    {% endif %}
-                {% endif %}
-
-                {% else %}
-                    {% if is_supplier %} Supplier:
-                {% else %}
-                    {% if is_customer %}
-                        Customer:
-                    {% else %}
-                        Pamper:
-                    {% endif %}
-                {% endif %}
-
-                {% endif %}
-            </strong> {{ filters['party'] }} </td>
+                {% if is_rtl %} رقم الفاتورة: {% else %} Invoice No: {% endif %}
+            </strong> {{ invoice_basic_info.name }}
+            </td>
+            <td>
+                <strong> {{ _("Printed Date") }} : </strong> {{ frappe.utils.getdate(frappe.utils.nowdate()) }}
+            </td>
         </tr>
         <tr>
-            <td><strong> {% if is_rtl%} الشركة: {% else %} Company: {% endif %}</strong>
-                {{invoice_basic_info.company }}
+            <td><strong> {% if is_rtl %} تاريخ الفاتورة: {% else %} Posting Date: {% endif %} </strong>
+                {{ invoice_basic_info.posting_date }}
             </td>
-            <td><strong> {% if is_rtl %} التاريخ: {% else %} Posting Date: {% endif %} </strong>
-                {{ invoice_basic_info.posting_date }}</td>
+            <td>
+                <strong> {{ _("Printed Time") }} : </strong> {{ frappe.utils.get_time_str(frappe.utils.now()) }}
+            </td>
         </tr>
         {% if is_pamper %}
-            <tr>
-                <td><strong>
-                    {% if is_rtl %} المورد: {% else %} Supplier: {% endif %}
-                </strong> {{ invoice_basic_info.supplier }} </td>
-                <td><strong>
-                    {% if is_rtl %} العميل: {% else %} Customer: {% endif %}
-                </strong>{{ invoice_basic_info.inv_customer }}</td>
-            </tr>
+        <tr>
+            <td><strong>
+                {% if is_rtl %} المورد: {% else %} Supplier: {% endif %}
+            </strong> {{ invoice_basic_info.supplier }}
+            </td>
+            <td><strong>
+                {% if is_rtl %} العميل: {% else %} Customer: {% endif %}
+            </strong>{{ invoice_basic_info.inv_customer }}
+            </td>
+        </tr>
         {% endif %}
     </table>
     <hr>
     <!-- Items Table -->
-    <h2> {% if is_rtl %} الأصناف {% else %} Items {% endif %} </h2>
+    <div style="padding-left: 8%; padding-right: 8%;"><h3><strong>
+        {% if is_rtl %}
+        {% if is_supplier %} المورد:
+        {% else %}
+        {% if is_customer %}
+        العميل:
+        {% else %}
+        الدلال:
+        {% endif %}
+        {% endif %}
+
+        {% else %}
+        {% if is_supplier %} Supplier:
+        {% else %}
+        {% if is_customer %}
+        Customer:
+        {% else %}
+        Pamper:
+        {% endif %}
+        {% endif %}
+
+        {% endif %}
+    </strong> {{ filters['party'] }}
+    </h3></div>
     <table class="table">
         <thead>
         <tr>
             {% if is_rtl %}
-                <th>الصنف</th>
-                <th>الكمية</th>
-                <th>السعر</th>
-                <th>الإجمالي</th>
-                {% if is_supplier %}
-                    <th>العمولة</th>
-                {% endif %}
+            <th>المجموع</th>
+            <th>الكمية</th>
+            <th>سعر الوحدة</th>
+            <th>الصنف</th>
+            <th>الملاحظات</th>
             {% else %}
-                <th>Item Name</th>
-                <th>Quantity</th>
-                <th>Price</th>
-                <th>Total</th>
-                {% if is_supplier %}
-                    <th>Commission</th>
-                {% endif %}
+            <th>Total</th>
+            <th>Quantity</th>
+            <th>Price</th>
+            <th>Item Name</th>
+            <th>Notes</th>
             {% endif %}
         </tr>
         </thead>
         <tbody>
         {% for item in items %}
         <tr>
-            <td>{{ item.item_name }}</td>
+            <td>{{ item.total }}</td>
             <td>{{ item.qty }}</td>
             <td>{{ item.price }}</td>
-            <td>{{ item.total }}</td>
-            {% if is_supplier %}
-                <td>{{ item.commission }}</td>
-            {% endif %}
+            <td>{{ item.item_name }}</td>
+            <td></td>
         </tr>
         {% endfor %}
+
+        {% if is_supplier %}
+        <tr>
+            <td>{{ invoice_basic_info.grand_total }}</td>
+            <td colspan="4">{% if is_rtl %} اجمالي المبلغ {% else %} Total {% endif %}</td>
+        </tr>
+        <tr>
+            <td>{{ invoice_basic_info.total_commission }}</td>
+            <td colspan="4">{% if is_rtl %} السعي {% else %} Commission {% endif %}</td>
+        </tr>
+        <tr>
+            <td>{{ invoice_basic_info.total_taxes }}</td>
+            <td colspan="4">{% if is_rtl %} ضريبة السعي {% else %} Commission Tax {% endif %}</td>
+        </tr>
+        {% endif %}
+        <tr>
+            <td>{{ invoice_basic_info.net_total }}</td>
+            <td colspan="4" style="text-align: center;"> {{ invoice_basic_info.net_total_in_words }}
+            </td>
+        </tr>
         </tbody>
     </table>
-    {% if is_supplier %}
-     <!-- Commissions Table -->
-        <hr>
-        <h2> {% if is_rtl %} العمولات {% else %} Commissions {% endif %} </h2>
-        <table class="table">
-            <thead>
-            <tr>
-                {% if is_rtl %}
-                    <th>الصنف</th>
-                    <th>السعر</th>
-                    <th>العموله %</th>
-                    <th>الضرائب %</th>
-                    <th>الإجمالي</th>
-                {% else %}
-                    <th>Item</th>
-                    <th>Price</th>
-                    <th>Commission %</th>
-                    <th>Taxes %</th>
-                    <th>Line Total</th>
-                {% endif %}
-            </tr>
-            </thead>
-            <tbody>
-            {% for row in commissions %}
-            <tr>
-                <td>{{ row.item }}</td>
-                <td>{{ row.price }}</td>
-                <td>{{ row.commission }}</td>
-                <td>{{ row.taxes }}</td>
-                <td>{{ row.commission_total }}</td>
-            </tr>
-            {% endfor %}
-            </tbody>
-        </table>
-    <hr>
-    <!--Totals-->
-    <table class="totals-table">
-        <tr>
-            <td><strong> {% if is_rtl %} إجمالي الفاتورة: {% else %} Grand Total: {% endif %} </strong>
-                {{ invoice_basic_info.grand_total }} </td>
-        </tr>
-    </table>
-    {% endif %}
 
 </div>
 <!-- Footer -->
+{% if letter_head and letter_head.footer %}
 <div class="footer">
-    <p>Generated by Frappe | {{ frappe.utils.formatdate(frappe.utils.nowdate()) }}</p>
+    {{ letter_head.footer }}
 </div>
+{% endif %}
+
 </body>
