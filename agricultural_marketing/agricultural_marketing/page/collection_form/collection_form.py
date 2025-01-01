@@ -232,12 +232,12 @@ def get_party_summary(filters, party_type, data):
                 if d.commission:
                     total_taxes = (d.commission * get_tax_rate()) / 100
                     commission_with_taxes = d.commission + total_taxes
-                    if filters.get("party_type") == "Supplier":
-                        append_summary(d.doctype, d.reference_id, d.date, d.qty, d.price, d.item_name,
-                                       (commission_with_taxes + d.total), 0)
-                    else:
-                        append_summary(d.doctype, d.reference_id, d.date, d.qty, d.price, d.item_name,
-                                       0, (commission_with_taxes + d.total))
+                if filters.get("party_type") == "Supplier":
+                    append_summary(d.doctype, d.reference_id, d.date, d.qty, d.price, d.item_name,
+                                   (commission_with_taxes + d.total), 0)
+                else:
+                    append_summary(d.doctype, d.reference_id, d.date, d.qty, d.price, d.item_name,
+                                   0, (commission_with_taxes + d.total))
 
                 if filters.get("party_type") == "Supplier":
                     total_credit += d.total
