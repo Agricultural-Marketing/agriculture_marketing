@@ -9,7 +9,7 @@ from agricultural_marketing.agricultural_marketing.doctype.invoice_form.invoice_
 
 
 @frappe.whitelist()
-def get_pdf(filters, template, doctype, orientation="Landscape"):
+def get_pdf(filters, template, doctype, orientation="Portrait"):
     # FIXME: There is an issue in generated pdf filename
     # FIXME: Handle this method to be standalone can be used for any template not only invoice form
     if isinstance(filters, str):
@@ -28,7 +28,13 @@ def get_pdf(filters, template, doctype, orientation="Landscape"):
     html_format = frappe.utils.get_html_format(paths_temp)
     res = build_pdf_template_context(filters)
 
-    context = {"data": res, "filters": filters, "lang": frappe.local.lang,
+    try:
+        letter_head = None
+        letter_head = frappe.get_doc("Letter Head", {"name": "Invoice Form", "disabled": 0}) or None
+    except frappe.DoesNotExistError:
+        pass
+
+    context = {"letter_head": letter_head, "data": res, "filters": filters, "lang": frappe.local.lang,
                "layout_direction": "rtl" if (is_rtl()) else "ltr"}
     html = frappe.render_template(html_format, context)
 
