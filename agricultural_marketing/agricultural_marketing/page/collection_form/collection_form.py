@@ -31,7 +31,7 @@ def execute(filters):
         company_defaults["address"] = get_company_address(company_defaults['name']).get("company_address_display")
         company_defaults["image"] = frappe.db.get_value("File", {"attached_to_name": company_defaults['name']},
                                                         "file_url")
-    html_format = get_html_format()
+    html_format = get_html_format(filters.get("new_layout"))
 
     context = {
         "letter_head": letter_head,
@@ -67,8 +67,11 @@ def get_data(data, filters):
     return data
 
 
-def get_html_format():
-    template_filename = os.path.join("collection_form" + '.html')
+def get_html_format(new_layout=False):
+    if new_layout:
+        template_filename = os.path.join("collection_form_new" + '.html')
+    else:
+        template_filename = os.path.join("collection_form" + '.html')
     folder = os.path.dirname(frappe.get_module("agricultural_marketing" + "." + "agricultural_marketing" +
                                                "." + "page").__file__)
     doctype_path = os.path.join(folder, "collection_form")
