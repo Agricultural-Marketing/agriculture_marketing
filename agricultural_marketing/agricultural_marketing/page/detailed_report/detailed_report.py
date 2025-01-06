@@ -150,24 +150,15 @@ def get_party_summary(filters, party_type, party, party_data):
         return 0
 
     def append_summary(reference_id, posting_date, statement, debit, credit):
-        nonlocal last_balance, balance_from, balance_to
         if switch_columns:
             debit, credit = credit, debit
-
-        last_balance = update_balance(last_balance, debit, credit)
-        if last_balance > 0:
-            balance_from = last_balance
-        else:
-            balance_to = last_balance
 
         party_summary.append({
             "reference": reference_id,
             "date": posting_date,
             "statement": statement,
             "debit": flt(debit, 2) or str(debit),
-            "credit": flt(credit, 2) or str(credit),
-            "balance_from": abs(flt(balance_from, 2)) or str(balance_from),
-            "balance_to": abs(flt(balance_to, 2)) or str(balance_to),
+            "credit": flt(credit, 2) or str(credit)
         })
 
     switch_columns = True if party_type == "Customer" else False
@@ -220,24 +211,17 @@ def get_party_summary(filters, party_type, party, party_data):
     last_balance = debit - credit
     # Append Opening
     if abs(debit) > abs(credit):
-        balance_from = last_balance
-        balance_to = 0
+        balance_from = debit = abs(last_balance)
+        balance_to = credit = 0
     else:
-        balance_from = 0
-        balance_to = last_balance
-
-    if abs(debit) > abs(credit):
-        debit = abs(last_balance)
-        credit = 0
-    else:
-        credit = abs(last_balance)
-        debit = 0
+        balance_from = debit = 0
+        balance_to = credit = abs(last_balance)
 
     party_summary.append({
         "debit": flt(debit, 2) or "0",
         "credit": flt(credit, 2) or "0",
-        "balance_from": abs(flt(balance_from, 2)) or "0",
-        "balance_to": abs(flt(balance_to, 2)) or "0",
+        "balance_from": flt(balance_from, 2) or "0",
+        "balance_to": flt(balance_to, 2) or "0",
         "statement": _("Opening Balance"),
     })
 
@@ -248,6 +232,7 @@ def get_party_summary(filters, party_type, party, party_data):
     for row in party_data.get("payments", []):
         append_summary(row.get("payment_id"), row.get("date"), row.get("remarks"), row.get("paid_amount"), 0)
 
+    party_summary = sorted(party_summary, key=lambda item: item.get("date", getdate("1000-01-01")))
     # Calculate totals
     total_sales = get_total_sales(party_data)
     total_payments = get_total_payments(party_data)
@@ -269,6 +254,27 @@ def get_party_summary(filters, party_type, party, party_data):
 
     total_debit += debit
     total_credit += credit
+
+    for row in party_summary[1:]:
+        last_balance = update_balance(last_balance, row.get("debit"), row.get("credit"))
+        if last_balance > 0:
+            balance_from = last_balance
+            balance_to = 0
+        else:
+            balance_from = 0
+            balance_to = last_balance
+
+        row.update({
+            "balance_from": abs(flt(balance_from, 2)) or str(balance_from),
+            "balance_to": abs(flt(balance_to, 2)) or str(balance_to),
+        })
+
+    if abs(total_debit) > abs(total_credit):
+        balance_from = abs(total_debit) - abs(total_credit)
+        balance_to = 0
+    else:
+        balance_to = abs(total_credit) - abs(total_debit)
+        balance_from = 0
 
     party_summary.append({
         "statement": _("Total"),

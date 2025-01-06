@@ -49,7 +49,7 @@
     <tr style="border:none;">
         <td style="border:none; width:50%; {% if is_rtl %} text-align:right {% else %} text-align:left {% endif %}">
             <h4>
-                {{_("Detailed Report")}}-{{_("Items")}} 
+                {{_("Detailed Report")}}-{{_("Items")}}
             </h4>
         </td>
         <td style="border:none; width:50%; {% if is_rtl %} text-align:left {% else %} text-align:right {% endif %}">
@@ -58,11 +58,12 @@
             </h4>
         </td>
     </tr>
-    <tr> 
-        <td style="border:none; width:50%; {% if is_rtl %} text-align:right {% else %} text-align:left {% endif %}"> 
-            <h4> 
-                {% if is_supplier %} {{_("Supplier Name")}} {% else %} {{_("Customer Name")}} {% endif %}:{{header.party }} 
-            </h4> 
+    <tr>
+        <td style="border:none; width:50%; {% if is_rtl %} text-align:right {% else %} text-align:left {% endif %}">
+            <h4>
+                {% if is_supplier %} {{_("Supplier Name")}} {% else %} {{_("Customer Name")}} {% endif %}:{{header.party
+                }}
+            </h4>
         </td>
         <td style="border:none; width:50%; {% if is_rtl %} text-align:left {% else %} text-align:right {% endif %}">
             <h4>
@@ -101,7 +102,7 @@
         <td> {% if sum.credit %} {{ sum.credit }} {% endif %}</td>
         <td> {% if sum.balance_from %} {{ sum.balance_from }} {% endif %}</td>
         <td> {% if sum.balance_to %} {{ sum.balance_to }} {% endif %}</td>
-        <td> {{ sum.statement }}</td>
+        <td> {% if sum.statement %} {{ sum.statement }} {% endif %}</td>
     </tr>
     {% endfor %}
     </tbody>
