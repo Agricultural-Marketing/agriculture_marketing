@@ -9,7 +9,10 @@ frappe.pages['collection-form'].on_page_load = function(wrapper) {
 	    label: __('New Layout'),
 	    fieldtype: 'Check',
 	    fieldname: 'new_layout',
-	    default: 0
+	    default: frappe.db.get_single_value("Agriculture Settings", "new_report_layout").then(
+	    (value) => {
+	        newLayout.set_value(value);
+	    })
 	});
     newLayout.$wrapper.addClass('col-md-6');
 
