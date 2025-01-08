@@ -1,20 +1,9 @@
-frappe.pages['collection-form'].on_page_load = function(wrapper) {
+frappe.pages['detailed-report'].on_page_load = function(wrapper) {
 	var page = frappe.ui.make_app_page({
 		parent: wrapper,
-		title: __('Collection Form'),
+		title: 'Detailed report',
 		single_column: true
 	});
-
-	let newLayout = page.add_field({
-	    label: __('New Layout'),
-	    fieldtype: 'Check',
-	    fieldname: 'new_layout',
-	    default: frappe.db.get_single_value("Agriculture Settings", "new_report_layout").then(
-	    (value) => {
-	        newLayout.set_value(value);
-	    })
-	});
-    newLayout.$wrapper.addClass('col-md-6');
 
 	let considerDraft = page.add_field({
 	    label: __('Consider Drafts'),
@@ -24,7 +13,15 @@ frappe.pages['collection-form'].on_page_load = function(wrapper) {
 	});
     considerDraft.$wrapper.addClass('col-md-6');
 
-	let company = page.add_field({
+    let neglectItems = page.add_field({
+	    label: __('Neglect Items'),
+	    fieldtype: 'Check',
+	    fieldname: 'neglect_items',
+	    default: 0
+	});
+    neglectItems.$wrapper.addClass('col-md-6');
+
+    let company = page.add_field({
 	    label: 'Company',
 	    fieldtype: 'Link',
 	    fieldname: 'company',
@@ -77,7 +74,7 @@ frappe.pages['collection-form'].on_page_load = function(wrapper) {
 	    get_query: function() {
 	        return {
 	            filters: {
-	                name: ['in', Object.keys(frappe.boot.party_account_types)],
+                    name: ['in', Object.keys(frappe.boot.party_account_types)],
 	            }
 	        }
 	    },
@@ -149,8 +146,7 @@ frappe.pages['collection-form'].on_page_load = function(wrapper) {
 	    }
 	});
     partyTypeField.$wrapper.removeClass('col-md-2').addClass('col-md-4');
-
-    function get_data(filters) {
+    function get_reports(filters) {
         frappe.dom.freeze('Processing...');
         var final_filters = {};
         for (let key in filters) {
@@ -158,13 +154,13 @@ frappe.pages['collection-form'].on_page_load = function(wrapper) {
         }
         validateMandatoryFilters(final_filters);
         frappe.call({
-            method: 'agricultural_marketing.agricultural_marketing.page.collection_form.collection_form.execute',
+            method: 'agricultural_marketing.agricultural_marketing.page.detailed_report.detailed_report.get_reports',
             args : {
                 filters: final_filters
             },
             callback: function (r) {
-                if (r.message.file_url) {
-                    downloadFiles(r.message.file_url);
+                if (r.message.file_urls) {
+                    downloadFiles(r.message.file_urls);
                     frappe.dom.unfreeze();
                 } else if (r.message.error) {
                     frappe.dom.unfreeze();
@@ -178,45 +174,16 @@ frappe.pages['collection-form'].on_page_load = function(wrapper) {
         });
     }
 
-
-    function open_pdf(filters) {
-        frappe.dom.freeze('Processing...');
-        var final_filters = {};
-        for (let key in filters) {
-            final_filters[key] = filters[key].value;
-        }
-        final_filters["open_pdf"] = true;
-        validateMandatoryFilters(final_filters);
-        frappe.call({
-            method: 'agricultural_marketing.agricultural_marketing.page.collection_form.collection_form.execute',
-            args : {
-                filters: final_filters
-            },
-            callback: function (r) {
-                if (r.message.html) {
-                    frappe.dom.unfreeze();
-                    var newWindow = window.open();
-                    newWindow.document.body.innerHTML = r.message.html;
-                } else if (r.message.error) {
-                    frappe.dom.unfreeze();
-                    frappe.throw({
-                        title : __("No Data"),
-                        indicator: "blue",
-                        message: __(r.message.error)
-                    });
-                }
-            },
-        });
-    }
-
-    async function downloadFiles(file_url) {
-        await new Promise((resolve, reject) => {
-            open_url_post(frappe.request.url, {
-                cmd: 'frappe.core.doctype.file.file.download_file',
-                file_url: file_url,
+    async function downloadFiles(file_urls) {
+        for (const file_url of file_urls) {
+            await new Promise((resolve, reject) => {
+                open_url_post(frappe.request.url, {
+                    cmd: 'frappe.core.doctype.file.file.download_file',
+                    file_url: file_url,
+                });
+                setTimeout(resolve, 2000);  // Wait for 2 second before downloading the next file
             });
-            setTimeout(resolve, 2000);  // Wait for 2 second before downloading the next file
-        });
+        }
     }
 
     function validateMandatoryFilters(filters) {
@@ -240,7 +207,5 @@ frappe.pages['collection-form'].on_page_load = function(wrapper) {
             })
         }
     }
-    let $btn = page.set_primary_action( __('Generate Collection Form'), () => { get_data(page.fields_dict) });
-    let $btnPDF = page.set_secondary_action( __('Open PDF'), () => { open_pdf(page.fields_dict) });
-
+    let $btn = page.set_primary_action( __('Get Reports'), () => { get_reports(page.fields_dict) });
 }

@@ -8,6 +8,8 @@ from erpnext.accounts.party import get_party_account
 from frappe.utils import now
 import copy
 
+from settings_manager.utils.data import money_in_words
+
 
 class InvoiceForm(Document):
     settings = frappe.get_single("Agriculture Settings")
@@ -404,7 +406,9 @@ def build_pdf_template_context(filters):
         res[0].update({
             "total_commission": total_commission,
             "total_taxes": total_taxes,
-            "net_total": res[0].grand_total - res[0].total_commissions_and_taxes
+            "net_total": res[0].grand_total - res[0].total_commissions_and_taxes,
+            "net_total_in_words": money_in_words((res[0].grand_total - res[0].total_commissions_and_taxes))
+
         })
 
     else:
@@ -419,7 +423,8 @@ def build_pdf_template_context(filters):
                 invformitem.item_name, invformitem.qty, invformitem.price, invformitem.total).run(
                 as_dict=True)
             res[0].update({
-                "net_total": sum([row["total"] for row in res]) or 0
+                "net_total": sum([row["total"] for row in res]) or 0,
+                "net_total_in_words": money_in_words(sum([row["total"] for row in res]) or 0)
             })
         else:
             res = inv_query.on(
@@ -430,7 +435,8 @@ def build_pdf_template_context(filters):
                 invformitem.item_name, invformitem.qty, invformitem.price, invformitem.total).run(
                 as_dict=True)
             res[0].update({
-                "net_total": sum([row["total"] for row in res]) or 0
+                "net_total": sum([row["total"] for row in res]) or 0,
+                "net_total_in_words": money_in_words(sum([row["total"] for row in res]) or 0)
             })
 
     return res
