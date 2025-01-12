@@ -232,7 +232,8 @@ def get_party_summary(filters, party_type, party, party_data):
         total_items = get_draft_total_items(filters, party) or 0
         total_payments = get_draft_total_payments(filters, party) or 0
         if filters.get("party_type") == "Supplier":
-            debit += total_payments
+            total_draft_commission = get_draft_total_commission(filters, party) or 0
+            debit += total_payments + total_draft_commission
             credit += total_items
         else:
             debit += total_items
@@ -441,6 +442,19 @@ def get_draft_total_items(filters, party):
     total_items = sum([re["total"] for re in result if re["total"]]) or 0
 
     return total_items
+
+
+def get_draft_total_commission(filters, party):
+    invform = frappe.qb.DocType("Invoice Form")
+    result = frappe.qb.from_(invform).where(invform.company == filters.get('company')).where(
+        invform.supplier == party).where(invform.docstatus == 0).where(
+        invform.posting_date.lt(filters.get("from_date"))).select(
+        Sum(invform.total_commissions_and_taxes).as_("commission")).run(
+        as_dict=True)
+
+    total_commission = sum([re["commission"] for re in result if re["commission"]]) or 0
+
+    return total_commission
 
 
 def get_draft_total_payments(filters, party):
