@@ -1,6 +1,6 @@
 {
  "charts": [],
- "content": "[{\"id\":\"zW8e7j728U\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Agriculture Marketing</span>\",\"col\":12}},{\"id\":\"YupUTk0-Vn\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Invoice Forms\",\"col\":3}},{\"id\":\"jPoGpZCoH5\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"GL Entry\",\"col\":3}},{\"id\":\"xuC74iWULQ\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Agriculture Settings\",\"col\":3}},{\"id\":\"FW5yzDt7Rz\",\"type\":\"card\",\"data\":{\"card_name\":\"Supplier Reports\",\"col\":5}},{\"id\":\"NG5lVtpWLo\",\"type\":\"card\",\"data\":{\"card_name\":\"Customer Reports\",\"col\":5}},{\"id\":\"SViOaXQKdb\",\"type\":\"card\",\"data\":{\"card_name\":\"Shortcuts\",\"col\":5}}]",
+ "content": "[{\"id\":\"zW8e7j728U\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Agriculture Marketing</span>\",\"col\":12}},{\"id\":\"YupUTk0-Vn\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Invoice Forms\",\"col\":3}},{\"id\":\"jPoGpZCoH5\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"GL Entry\",\"col\":3}},{\"id\":\"xuC74iWULQ\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Agriculture Settings\",\"col\":3}},{\"id\":\"NSvB16dMmS\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Trial Balance Settings\",\"col\":3}},{\"id\":\"FW5yzDt7Rz\",\"type\":\"card\",\"data\":{\"card_name\":\"Supplier Reports\",\"col\":5}},{\"id\":\"NG5lVtpWLo\",\"type\":\"card\",\"data\":{\"card_name\":\"Customer Reports\",\"col\":5}},{\"id\":\"SViOaXQKdb\",\"type\":\"card\",\"data\":{\"card_name\":\"Shortcuts\",\"col\":5}}]",
  "creation": "2024-07-27 17:53:30.500530",
  "custom_blocks": [],
  "docstatus": 0,
@@ -75,7 +75,7 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "Shortcuts",
-   "link_count": 2,
+   "link_count": 3,
    "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
@@ -99,9 +99,19 @@
    "link_type": "Page",
    "onboard": 0,
    "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Commission Management",
+   "link_count": 0,
+   "link_to": "commission-management",
+   "link_type": "Page",
+   "onboard": 0,
+   "type": "Link"
   }
  ],
- "modified": "2024-09-18 14:55:00.973358",
+ "modified": "2025-01-15 03:14:50.944701",
  "modified_by": "Administrator",
  "module": "Agricultural Marketing",
  "name": "Agriculture Marketing",
@@ -113,6 +123,14 @@
  "roles": [],
  "sequence_id": 6.0,
  "shortcuts": [
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Trial Balance Settings",
+   "link_to": "Trial Balance Settings",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
   {
    "color": "Grey",
    "doc_view": "List",
