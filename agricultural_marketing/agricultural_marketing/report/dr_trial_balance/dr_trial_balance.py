@@ -20,65 +20,106 @@ def get_data(filters, trial_balance_settings):
         "from_date": filters.get("from_date"),
         "to_date": filters.get("to_date")
     }
-    sections = ["cash_section", "customers_section", "suppliers_section", "share_capital_section", "taxes_section",
+    children = ["cash_section", "customers_section", "suppliers_section", "share_capital_section", "taxes_section",
                 "income_section", "expense_section"]
-    for section in sections:
-        for row in trial_balance_settings.get(section, []):
-            if not row.get("is_parent"):
+    for child in children:
+        section_data = {}
+        for row in trial_balance_settings.get(child, []):
+            if row.get("is_parent"):
+                section_data[row.get("title")] = {
+                    "title": row.get("title"),
+                    "opening_debit": 0,
+                    "opening_credit": 0,
+                    "debit": 0,
+                    "credit": 0,
+                    "closing_debit": 0,
+                    "closing_credit": 0,
+                    "is_parent": 1
+                }
+            else:
                 gl_filters.update({
                     "account": row.get("account")
                 })
                 # Get opening
-                opening_debit, opening_credit = 0, 0
-                q = """ 
-                    SELECT 
-                        name, debit, credit, posting_date 
-                    FROM  
-                        `tabGL Entry` 
-                    WHERE  
-                        account=%(account)s  
-                    AND  
-                        is_cancelled = 0 
-                    AND 
-                        (posting_date < %(from_date)s OR is_opening = 'Yes') 
-                """
-
-                gl_entries = frappe.db.sql(q, gl_filters, as_dict=True)
-
-                for gl in gl_entries:
-                    opening_debit += gl.debit
-                    opening_credit += gl.credit
-
-                # Get debit and credit
-                debit, credit = 0, 0
-                q = """ 
-                    SELECT 
-                        name, debit, credit, posting_date 
-                    FROM  
-                        `tabGL Entry` 
-                    WHERE  
-                        account=%(account)s  
-                    AND  
-                        is_cancelled = 0 
-                    AND 
-                        ((posting_date >= %(from_date)s AND posting_date <= %(to_date)s) OR is_opening = 'Yes') 
-                """
-                gl_entries = frappe.db.sql(q, gl_filters, as_dict=True)
-
-                for gl in gl_entries:
-                    debit += gl.debit
-                    credit += gl.credit
-
-                result.append({
+                opening_debit, opening_credit = get_opening_balances_from_gl(gl_filters)
+                # Get duration debit and credit
+                debit, credit = get_duration_balances_from_gl(gl_filters)
+                # Calculate closing balances
+                closing_debit = opening_debit - debit
+                closing_credit = opening_credit - credit
+                section_data[row.get("title")] = {
                     "title": row.get("title"),
                     "opening_debit": opening_debit,
                     "opening_credit": opening_credit,
                     "debit": debit,
                     "credit": credit,
-                    "closing_debit": opening_debit - debit,
-                    "closing_credit": opening_credit - credit,
-                })
+                    "closing_debit": closing_debit,
+                    "closing_credit": closing_credit,
+                    "is_parent": 0
+                }
+
+                if row.get("parent1"):
+                    parent_record = section_data[row.get("parent1")]
+                    parent_record.update({
+                        "opening_debit": parent_record["opening_debit"] + opening_debit,
+                        "opening_credit": parent_record["opening_credit"] + opening_credit,
+                        "debit": parent_record["debit"] + debit,
+                        "credit": parent_record["credit"] + credit,
+                        "closing_debit": parent_record["closing_debit"] + closing_debit,
+                        "closing_credit": parent_record["closing_credit"] + closing_credit,
+                    })
+
+        for section in section_data:
+            result.append(section_data[section])
+
     return result
+
+
+def get_opening_balances_from_gl(gl_filters):
+    opening_debit, opening_credit = 0, 0
+    q = """ 
+                        SELECT 
+                            name, debit, credit, posting_date 
+                        FROM  
+                            `tabGL Entry` 
+                        WHERE  
+                            account=%(account)s  
+                        AND  
+                            is_cancelled = 0 
+                        AND 
+                            (posting_date < %(from_date)s OR is_opening = 'Yes') 
+                    """
+
+    gl_entries = frappe.db.sql(q, gl_filters, as_dict=True)
+
+    for gl in gl_entries:
+        opening_debit += gl.debit
+        opening_credit += gl.credit
+
+    return opening_debit, opening_credit
+
+
+def get_duration_balances_from_gl(gl_filters):
+    debit, credit = 0, 0
+    q = """ 
+                        SELECT 
+                            name, debit, credit, posting_date 
+                        FROM  
+                            `tabGL Entry` 
+                        WHERE  
+                            account=%(account)s  
+                        AND  
+                            is_cancelled = 0 
+                        AND 
+                            (posting_date >= %(from_date)s AND posting_date <= %(to_date)s) 
+                    """
+    gl_entries = frappe.db.sql(q, gl_filters, as_dict=True)
+
+    for gl in gl_entries:
+        debit += gl.debit
+        credit += gl.credit
+
+    return debit, credit
 
 
 def get_columns():
@@ -130,5 +171,11 @@ def get_columns():
             "fieldtype": "Currency",
             "options": "currency",
             "width": 150
+        },
+        {
+            "fieldname": "is_parent",
+            "label": _("IS Parent"),
+            "fieldtype": "Check",
+            "width": 50
         }
     ]
