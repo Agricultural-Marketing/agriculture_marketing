@@ -137,7 +137,7 @@ def get_customers_section_data(filters, trial_balance_settings, child, result):
             Sum(invfrmitem.total).as_("total")).where(
             invfrm.company == filters.get("company")).where(
             invfrm.posting_date.lt(filters.get("from_date"))).where(
-            invfrmitem.customer.isin(customers)).run(as_dict=True)[0]["total"] or 0
+            invfrmitem.customer.isin(customers)).where(invfrm.docstatus == 1).run(as_dict=True)[0]["total"] or 0
 
         # get opening credit
         payments_query = frappe.qb.from_(entry).where(
@@ -244,7 +244,7 @@ def get_suppliers_section_data(filters, trial_balance_settings, child, result):
         opening_debit = frappe.qb.from_(invfrm).select(Sum(invfrm.grand_total).as_("total")).where(
             invfrm.company == filters.get("company")).where(
             invfrm.posting_date.lt(filters.get("from_date"))).where(
-            invfrm.supplier.isin(suppliers)).run(as_dict=True)[0]["total"] or 0
+            invfrm.supplier.isin(suppliers)).where(invfrm.docstatus == 1).run(as_dict=True)[0]["total"] or 0
 
         # get opening credit
         payments_query = frappe.qb.from_(entry).where(
@@ -347,7 +347,7 @@ def get_taxes_section_data(filters, trial_balance_settings, child, result):
         commission = frappe.qb.from_(invfrm).join(invfrmcom).on(invfrmcom.parent == invfrm.name).select(
             ((invfrmcom.price * invfrmcom.commission) / 100).as_("total_commission")).where(
             invfrm.company == filters.get("company")).where(
-            invfrm.posting_date.lt(filters.get("from_date"))).run(as_dict=True)
+            invfrm.posting_date.lt(filters.get("from_date"))).where(invfrm.docstatus == 1).run(as_dict=True)
 
         total_commission = sum([com["total_commission"] for com in commission])
         opening_debit = (total_commission * 15) / 100
@@ -358,7 +358,7 @@ def get_taxes_section_data(filters, trial_balance_settings, child, result):
             ((invfrmcom.price * invfrmcom.commission) / 100).as_("total_commission")).where(
             invfrm.company == filters.get("company")).where(
             invfrm.posting_date.gte(filters.get("from_date"))).where(
-            invfrm.posting_date.lte(filters.get("to_date"))).run(as_dict=True)
+            invfrm.posting_date.lte(filters.get("to_date"))).where(invfrm.docstatus == 1).run(as_dict=True)
 
         total_commission = sum([com["total_commission"] for com in commission])
         debit = (total_commission * 15) / 100
