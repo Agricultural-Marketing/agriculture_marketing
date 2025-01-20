@@ -27,7 +27,7 @@ def get_data(filters, trial_balance_settings):
     get_customers_section_data(filters, trial_balance_settings, "customers_section", result)
     get_suppliers_section_data(filters, trial_balance_settings, "suppliers_section", result)
     get_child_data_from_gl_entries(gl_filters, trial_balance_settings, "share_capital_section", result)
-    get_taxes_section_data(gl_filters, trial_balance_settings, "taxes_section", result)
+    get_taxes_section_data(filters, trial_balance_settings, "taxes_section", result)
     get_child_data_from_gl_entries(gl_filters, trial_balance_settings, "income_section", result)
     get_child_data_from_gl_entries(gl_filters, trial_balance_settings, "expense_section", result)
 
@@ -130,22 +130,25 @@ def get_customers_section_data(filters, trial_balance_settings, child, result):
     invfrm = frappe.qb.DocType("Invoice Form")
     invfrmitem = frappe.qb.DocType("Invoice Form Item")
     entry = frappe.qb.DocType("Payment Entry")
+    docstatuses = [1]
+    if filters.get("draft"):
+        docstatuses.append(0)
 
     def get_customers_opening_balance():
         # get opening debit
-        opening_debit = frappe.qb.from_(invfrm).join(invfrmitem).on(invfrmitem.parent == invfrm.name).select(
+        opening_debit_query = frappe.qb.from_(invfrm).join(invfrmitem).on(invfrmitem.parent == invfrm.name).select(
             Sum(invfrmitem.total).as_("total")).where(
             invfrm.company == filters.get("company")).where(
             invfrm.posting_date.lt(filters.get("from_date"))).where(
-            invfrmitem.customer.isin(customers)).where(invfrm.docstatus == 1).run(as_dict=True)[0]["total"] or 0
+            invfrmitem.customer.isin(customers)).where(invfrm.docstatus.isin(docstatuses))
+
+        opening_debit = opening_debit_query.run(as_dict=True)[0]["total"] or 0
 
         # get opening credit
         payments_query = frappe.qb.from_(entry).where(
             entry.company == filters.get('company')).where(
             entry.party.isin(customers)).where(
-            entry.posting_date.lt(filters.get("from_date"))).where(
-            entry.docstatus == 1
-        )
+            entry.posting_date.lt(filters.get("from_date"))).where(entry.docstatus.isin(docstatuses))
 
         payments_query = payments_query.select(entry.payment_type).select(
             Case().when(entry.payment_type == "Receive", Sum(entry.paid_amount)).
@@ -160,12 +163,14 @@ def get_customers_section_data(filters, trial_balance_settings, child, result):
 
     def get_customers_duration_balance():
         # get duration debit
-        duration_debit = frappe.qb.from_(invfrm).join(invfrmitem).on(invfrmitem.parent == invfrm.name).select(
+        duration_debit_query = frappe.qb.from_(invfrm).join(invfrmitem).on(invfrmitem.parent == invfrm.name).select(
             Sum(invfrmitem.total).as_("total")).where(
             invfrm.company == filters.get("company")).where(
             invfrm.posting_date.gte(filters.get("from_date"))).where(
             invfrm.posting_date.lte(filters.get("to_date"))).where(
-            invfrmitem.customer.isin(customers)).run(as_dict=True)[0]["total"] or 0
+            invfrmitem.customer.isin(customers)).where(invfrm.docstatus.isin(docstatuses))
+
+        duration_debit = duration_debit_query.run(as_dict=True)[0]["total"] or 0
 
         # get duration credit
         payments_query = frappe.qb.from_(entry).where(
@@ -173,8 +178,7 @@ def get_customers_section_data(filters, trial_balance_settings, child, result):
             entry.party.isin(customers)).where(
             entry.posting_date.gte(filters.get("from_date"))).where(
             entry.posting_date.lte(filters.get("to_date"))).where(
-            entry.docstatus == 1
-        )
+            entry.docstatus.isin(docstatuses))
 
         payments_query = payments_query.select(entry.payment_type).select(
             Case().when(entry.payment_type == "Receive", entry.paid_amount).
@@ -238,21 +242,26 @@ def get_customers_section_data(filters, trial_balance_settings, child, result):
 def get_suppliers_section_data(filters, trial_balance_settings, child, result):
     invfrm = frappe.qb.DocType("Invoice Form")
     entry = frappe.qb.DocType("Payment Entry")
+    docstatuses = [1]
+    if filters.get("draft"):
+        docstatuses.append(0)
 
     def get_suppliers_opening_balance():
         # get opening debit
-        opening_debit = frappe.qb.from_(invfrm).select(Sum(invfrm.grand_total).as_("total")).where(
+        opening_debit_query = frappe.qb.from_(invfrm).select(Sum(invfrm.grand_total).as_("total")).where(
             invfrm.company == filters.get("company")).where(
             invfrm.posting_date.lt(filters.get("from_date"))).where(
-            invfrm.supplier.isin(suppliers)).where(invfrm.docstatus == 1).run(as_dict=True)[0]["total"] or 0
+            invfrm.supplier.isin(suppliers))
+
+        opening_debit_query = opening_debit_query.where(invfrm.docstatus.isin(docstatuses))
+        opening_debit = opening_debit_query.run(as_dict=True)[0]["total"] or 0
 
         # get opening credit
         payments_query = frappe.qb.from_(entry).where(
             entry.company == filters.get('company')).where(
             entry.party.isin(suppliers)).where(
             entry.posting_date.lt(filters.get("from_date"))).where(
-            entry.docstatus == 1
-        )
+            entry.docstatus.isin(docstatuses))
 
         payments_query = payments_query.select(entry.payment_type).select(
             Case().when(entry.payment_type == "Pay", Sum(entry.paid_amount)).
@@ -267,11 +276,14 @@ def get_suppliers_section_data(filters, trial_balance_settings, child, result):
 
     def get_suppliers_duration_balance():
         # get duration debit
-        duration_debit = frappe.qb.from_(invfrm).select(Sum(invfrm.grand_total).as_("total")).where(
+        duration_debit_query = frappe.qb.from_(invfrm).select(Sum(invfrm.grand_total).as_("total")).where(
             invfrm.company == filters.get("company")).where(
             invfrm.posting_date.gte(filters.get("from_date"))).where(
             invfrm.posting_date.lte(filters.get("to_date"))).where(
-            invfrm.supplier.isin(suppliers)).run(as_dict=True)[0]["total"] or 0
+            invfrm.supplier.isin(suppliers))
+
+        duration_debit_query = duration_debit_query.where(invfrm.docstatus.isin(docstatuses))
+        duration_debit = duration_debit_query.run(as_dict=True)[0]["total"] or 0
 
         # get duration credit
         payments_query = frappe.qb.from_(entry).where(
@@ -279,8 +291,7 @@ def get_suppliers_section_data(filters, trial_balance_settings, child, result):
             entry.party.isin(suppliers)).where(
             entry.posting_date.gte(filters.get("from_date"))).where(
             entry.posting_date.lte(filters.get("to_date"))).where(
-            entry.docstatus == 1
-        )
+            entry.docstatus.isin(docstatuses))
 
         payments_query = payments_query.select(entry.payment_type).select(
             Case().when(entry.payment_type == "Pay", entry.paid_amount).
@@ -342,12 +353,16 @@ def get_suppliers_section_data(filters, trial_balance_settings, child, result):
 def get_taxes_section_data(filters, trial_balance_settings, child, result):
     invfrm = frappe.qb.DocType("Invoice Form")
     invfrmcom = frappe.qb.DocType("Invoice Form Commission")
+    docstatuses = [1]
+    if filters.get("draft"):
+        docstatuses.append(0)
 
     def get_taxes_opening_balance():
         commission = frappe.qb.from_(invfrm).join(invfrmcom).on(invfrmcom.parent == invfrm.name).select(
             ((invfrmcom.price * invfrmcom.commission) / 100).as_("total_commission")).where(
             invfrm.company == filters.get("company")).where(
-            invfrm.posting_date.lt(filters.get("from_date"))).where(invfrm.docstatus == 1).run(as_dict=True)
+            invfrm.posting_date.lt(filters.get("from_date"))).where(invfrm.docstatus.isin(docstatuses)).run(
+            as_dict=True)
 
         total_commission = sum([com["total_commission"] for com in commission])
         opening_debit = (total_commission * 15) / 100
@@ -358,7 +373,7 @@ def get_taxes_section_data(filters, trial_balance_settings, child, result):
             ((invfrmcom.price * invfrmcom.commission) / 100).as_("total_commission")).where(
             invfrm.company == filters.get("company")).where(
             invfrm.posting_date.gte(filters.get("from_date"))).where(
-            invfrm.posting_date.lte(filters.get("to_date"))).where(invfrm.docstatus == 1).run(as_dict=True)
+            invfrm.posting_date.lte(filters.get("to_date"))).where(invfrm.docstatus.isin(docstatuses)).run(as_dict=True)
 
         total_commission = sum([com["total_commission"] for com in commission])
         debit = (total_commission * 15) / 100
