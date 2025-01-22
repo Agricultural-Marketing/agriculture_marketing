@@ -27,7 +27,7 @@ frappe.query_reports["DR Trial Balance"] = {
            default: frappe.datetime.get_today()
         },
 	    {
-           "fieldname": "draft",
+           "fieldname": "consider_drafts",
            "fieldtype": "Check",
            "label": __("Consider Drafts"),
            "wildcard_filter": 0

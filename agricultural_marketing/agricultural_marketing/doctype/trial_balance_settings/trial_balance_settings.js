@@ -11,6 +11,13 @@ frappe.ui.form.on("Trial Balance Settings", {
        set_options(frm, frm.doc.taxes_section, frm.fields_dict.taxes_section);
        set_options(frm, frm.doc.income_section, frm.fields_dict.income_section);
        set_options(frm, frm.doc.expense_section, frm.fields_dict.expense_section);
+       frm.fields_dict['income_section'].grid.get_field("commission_item").get_query = function() {
+        return {
+            filters: {
+                commission_item: 1
+            }
+        }
+    };
  	},
 });
 

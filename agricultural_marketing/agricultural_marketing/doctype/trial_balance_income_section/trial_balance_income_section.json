@@ -11,8 +11,7 @@
   "account",
   "is_parent",
   "parent1",
-  "customer_group",
-  "supplier_group"
+  "commission_item"
  ],
  "fields": [
   {
@@ -51,26 +50,17 @@
    "label": "Parent"
   },
   {
-   "columns": 1,
-   "fieldname": "customer_group",
+   "fieldname": "commission_item",
    "fieldtype": "Link",
    "in_list_view": 1,
-   "label": "Customer Group",
-   "options": "Customer Group"
-  },
-  {
-   "columns": 1,
-   "fieldname": "supplier_group",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "label": "Supplier Group",
-   "options": "Supplier Group"
+   "label": "Commission Item",
+   "options": "Item"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-01-15 03:12:18.963140",
+ "modified": "2025-01-22 03:57:49.983198",
  "modified_by": "Administrator",
  "module": "Agricultural Marketing",
  "name": "Trial Balance Income Section",
