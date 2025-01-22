@@ -10,7 +10,8 @@ import copy
 
 
 class InvoiceForm(Document):
-    settings = frappe.get_single("Agriculture Settings")
+    if "agricultural_marketing" in frappe.get_installed_apps():
+        settings = frappe.get_single("Agriculture Settings")
 
     def validate(self):
         self.update_grand_total()
