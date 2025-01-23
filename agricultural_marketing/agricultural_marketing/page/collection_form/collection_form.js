@@ -209,16 +209,14 @@ frappe.pages['collection-form'].on_page_load = function(wrapper) {
         });
     }
 
-    async function downloadFiles(file_urls) {
-        for (const file_url of file_urls) {
-            await new Promise((resolve, reject) => {
-                open_url_post(frappe.request.url, {
-                    cmd: 'frappe.core.doctype.file.file.download_file',
-                    file_url: file_url,
-                });
-                setTimeout(resolve, 2000);  // Wait for 2 second before downloading the next file
+    async function downloadFiles(file_url) {
+        await new Promise((resolve, reject) => {
+            open_url_post(frappe.request.url, {
+                cmd: 'frappe.core.doctype.file.file.download_file',
+                file_url: file_url,
             });
-        }
+            setTimeout(resolve, 2000);  // Wait for 2 second before downloading the next file
+        });
     }
 
     function validateMandatoryFilters(filters) {
