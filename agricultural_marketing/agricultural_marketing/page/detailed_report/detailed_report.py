@@ -193,10 +193,6 @@ def get_party_summary(filters, party_type, party, party_data):
         debit += gl.debit
         credit += gl.credit
 
-    # GET totals for customers (Opening Balance)
-    if filters.get("party_type") == "Customer":
-        debit = get_opening_from_sales_invoice_for_customer(filters, party, debit)
-
     # GET total items and payments before from date
     if filters.get("consider_draft"):
         total_items = get_draft_total_items(filters, party) or 0
@@ -354,8 +350,6 @@ def select_fields_for_invoices(filters, items_query, _field, invform, invformite
 
     if filters.get("party_type") == "Supplier":
         items_query = items_query.select(invformitem.commission)
-    else:
-        items_query = items_query.select(invformitem.customer_commission.as_("commission"))
 
     return items_query
 
