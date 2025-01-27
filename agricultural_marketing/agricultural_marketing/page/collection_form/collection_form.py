@@ -307,6 +307,7 @@ def select_fields_for_invoices(filters, items_query, _field, invform, invformite
 
 def process_result(invoices_details, payments_details, data):
     result = invoices_details + payments_details
+    result = sorted(result, key=lambda x: x['party'])
     for row in result:
         party = row.pop("party")  # Extract and remove party from the row
         data.setdefault(party, []).append(row)

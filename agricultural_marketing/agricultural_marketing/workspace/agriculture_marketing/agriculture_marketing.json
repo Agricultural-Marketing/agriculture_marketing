@@ -104,46 +104,6 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "General Reports",
-   "link_count": 3,
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Card Break"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Collection Form",
-   "link_count": 0,
-   "link_to": "collection-form",
-   "link_type": "Page",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Statement Forms",
-   "link_count": 0,
-   "link_to": "statement-forms",
-   "link_type": "Page",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "DR Trial Balance",
-   "link_count": 0,
-   "link_to": "DR Trial Balance",
-   "link_type": "Report",
-   "onboard": 0,
-   "report_ref_doctype": "GL Entry",
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
    "label": "Supplier Reports",
    "link_count": 2,
    "link_type": "DocType",
@@ -198,10 +158,49 @@
    "link_type": "Report",
    "onboard": 0,
    "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "General Reports",
+   "link_count": 3,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Collection Form",
+   "link_count": 0,
+   "link_to": "collection-form",
+   "link_type": "Page",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Statement Forms",
+   "link_count": 0,
+   "link_to": "statement-forms",
+   "link_type": "Page",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "DR Trial Balance",
+   "link_count": 0,
+   "link_to": "DR Trial Balance",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
   }
  ],
- "modified": "2025-01-25 09:22:08.337857",
- "modified_by": "admin@example.com",
+ "modified": "2025-01-27 04:04:24.424052",
+ "modified_by": "Administrator",
  "module": "Agricultural Marketing",
  "name": "Agriculture Marketing",
  "number_cards": [],

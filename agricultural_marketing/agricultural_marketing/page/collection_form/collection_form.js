@@ -196,7 +196,8 @@ frappe.pages['collection-form'].on_page_load = function(wrapper) {
                 if (r.message.html) {
                     frappe.dom.unfreeze();
                     var newWindow = window.open();
-                    newWindow.document.body.innerHTML = r.message.html;
+                    newWindow.document.write(`${r.message.html}`)
+                    newWindow.document.close();
                 } else if (r.message.error) {
                     frappe.dom.unfreeze();
                     frappe.throw({

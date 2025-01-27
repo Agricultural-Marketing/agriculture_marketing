@@ -12,6 +12,7 @@ def execute(filters=None):
     columns = get_columns()
     trial_balance_settings = frappe.get_single("Trial Balance Settings")
     data = get_data(filters, trial_balance_settings)
+    data = append_totals_row(data)
     return columns, data
 
 
@@ -68,7 +69,9 @@ def get_duration_balances_from_gl(gl_filters):
             AND 
                 is_cancelled = 0  
             AND 
-                (posting_date >= %(from_date)s AND posting_date <= %(to_date)s) 
+                (posting_date >= %(from_date)s AND posting_date <= %(to_date)s)
+            AND
+                is_opening = 'No'
     """
     gl_entries = frappe.db.sql(q, gl_filters, as_dict=True)
 
@@ -84,13 +87,14 @@ def get_child_data_from_gl_entries(gl_filters, trial_balance_settings, child, re
     for row in trial_balance_settings.get(child, []):
         if row.get("is_parent"):
             section_data[row.get("title")] = {
-                "title": row.get("title"),
+                "title": frappe.bold(row.get("title")),
                 "opening_debit": 0,
                 "opening_credit": 0,
                 "debit": 0,
                 "credit": 0,
                 "closing_debit": 0,
-                "closing_credit": 0
+                "closing_credit": 0,
+                "is_parent": 1
             }
         else:
             gl_filters.update({
@@ -101,8 +105,8 @@ def get_child_data_from_gl_entries(gl_filters, trial_balance_settings, child, re
             # Get duration debit and credit
             debit, credit = get_duration_balances_from_gl(gl_filters)
             # Calculate closing balances
-            closing_debit = opening_debit - debit
-            closing_credit = opening_credit - credit
+            closing_debit, closing_credit = calculate_closing_balance(opening_debit, debit, opening_credit, credit)
+
             section_data[row.get("title")] = {
                 "title": row.get("title"),
                 "opening_debit": opening_debit,
@@ -110,7 +114,8 @@ def get_child_data_from_gl_entries(gl_filters, trial_balance_settings, child, re
                 "debit": debit,
                 "credit": credit,
                 "closing_debit": closing_debit,
-                "closing_credit": closing_credit
+                "closing_credit": closing_credit,
+                "is_parent": 0
             }
 
             if row.get("parent1"):
@@ -157,13 +162,14 @@ def get_customers_section_data(gl_filters, filters, trial_balance_settings, chil
     for row in trial_balance_settings.get(child, []):
         if row.get("is_parent"):
             section_data[row.get("title")] = {
-                "title": row.get("title"),
+                "title": frappe.bold(row.get("title")),
                 "opening_debit": 0,
                 "opening_credit": 0,
                 "debit": 0,
                 "credit": 0,
                 "closing_debit": 0,
-                "closing_credit": 0
+                "closing_credit": 0,
+                "is_parent": 1
             }
         else:
             gl_filters.update({
@@ -185,8 +191,8 @@ def get_customers_section_data(gl_filters, filters, trial_balance_settings, chil
                     debit += draft_duration_debit
 
             # Calculate closing balances
-            closing_debit = opening_debit - debit
-            closing_credit = opening_credit - credit
+            closing_debit, closing_credit = calculate_closing_balance(opening_debit, debit, opening_credit, credit)
+
             section_data[row.get("title")] = {
                 "title": row.get("title"),
                 "opening_debit": opening_debit,
@@ -194,7 +200,8 @@ def get_customers_section_data(gl_filters, filters, trial_balance_settings, chil
                 "debit": debit,
                 "credit": credit,
                 "closing_debit": closing_debit,
-                "closing_credit": closing_credit
+                "closing_credit": closing_credit,
+                "is_parent": 0
             }
 
             if row.get("parent1"):
@@ -264,13 +271,14 @@ def get_suppliers_section_data(gl_filters, filters, trial_balance_settings, chil
     for row in trial_balance_settings.get(child, []):
         if row.get("is_parent"):
             section_data[row.get("title")] = {
-                "title": row.get("title"),
+                "title": frappe.bold(row.get("title")),
                 "opening_debit": 0,
                 "opening_credit": 0,
                 "debit": 0,
                 "credit": 0,
                 "closing_debit": 0,
-                "closing_credit": 0
+                "closing_credit": 0,
+                "is_parent": 1
             }
         else:
             gl_filters.update({
@@ -293,8 +301,9 @@ def get_suppliers_section_data(gl_filters, filters, trial_balance_settings, chil
                     credit += draft_duration_credit
                     debit += draft_duration_debit
 
-            closing_debit = opening_debit - debit
-            closing_credit = opening_credit - credit
+            # Calculate closing balance
+            closing_debit, closing_credit = calculate_closing_balance(opening_debit, debit, opening_credit, credit)
+
             section_data[row.get("title")] = {
                 "title": row.get("title"),
                 "opening_debit": opening_debit,
@@ -302,7 +311,8 @@ def get_suppliers_section_data(gl_filters, filters, trial_balance_settings, chil
                 "debit": debit,
                 "credit": credit,
                 "closing_debit": closing_debit,
-                "closing_credit": closing_credit
+                "closing_credit": closing_credit,
+                "is_parent": 0
             }
 
             if row.get("parent1"):
@@ -352,13 +362,14 @@ def get_taxes_section_data(gl_filters, filters, trial_balance_settings, child, r
     for row in trial_balance_settings.get(child, []):
         if row.get("is_parent"):
             section_data[row.get("title")] = {
-                "title": row.get("title"),
+                "title": frappe.bold(row.get("title")),
                 "opening_debit": 0,
                 "opening_credit": 0,
                 "debit": 0,
                 "credit": 0,
                 "closing_debit": 0,
-                "closing_credit": 0
+                "closing_credit": 0,
+                "is_parent": 1
             }
         else:
             gl_filters.update({
@@ -377,8 +388,9 @@ def get_taxes_section_data(gl_filters, filters, trial_balance_settings, child, r
             debit += invoices_duration_debit
             credit += invoices_duration_credit
 
-            closing_debit = opening_debit - debit
-            closing_credit = opening_credit - credit
+            # Calculate closing balance
+            closing_debit, closing_credit = calculate_closing_balance(opening_debit, debit, opening_credit, credit)
+
             section_data[row.get("title")] = {
                 "title": row.get("title"),
                 "opening_debit": opening_debit,
@@ -386,7 +398,8 @@ def get_taxes_section_data(gl_filters, filters, trial_balance_settings, child, r
                 "debit": debit,
                 "credit": credit,
                 "closing_debit": closing_debit,
-                "closing_credit": closing_credit
+                "closing_credit": closing_credit,
+                "is_parent": 0
             }
 
             if row.get("parent1"):
@@ -437,13 +450,14 @@ def get_income_section_data(gl_filters, filters, trial_balance_settings, child, 
     for row in trial_balance_settings.get(child, []):
         if row.get("is_parent"):
             section_data[row.get("title")] = {
-                "title": row.get("title"),
+                "title": frappe.bold(row.get("title")),
                 "opening_debit": 0,
                 "opening_credit": 0,
                 "debit": 0,
                 "credit": 0,
                 "closing_debit": 0,
-                "closing_credit": 0
+                "closing_credit": 0,
+                "is_parent": 1
             }
         else:
             gl_filters.update({
@@ -463,8 +477,9 @@ def get_income_section_data(gl_filters, filters, trial_balance_settings, child, 
                 debit += invoices_duration_debit
                 credit += invoices_duration_credit
 
-            closing_debit = opening_debit - debit
-            closing_credit = opening_credit - credit
+            # Calculate closing balance
+            closing_debit, closing_credit = calculate_closing_balance(opening_debit, debit, opening_credit, credit)
+
             section_data[row.get("title")] = {
                 "title": row.get("title"),
                 "opening_debit": opening_debit,
@@ -472,7 +487,8 @@ def get_income_section_data(gl_filters, filters, trial_balance_settings, child, 
                 "debit": debit,
                 "credit": credit,
                 "closing_debit": closing_debit,
-                "closing_credit": closing_credit
+                "closing_credit": closing_credit,
+                "is_parent": 0
             }
 
             if row.get("parent1"):
@@ -499,6 +515,19 @@ def get_tax_rate():
     tax_rate = frappe.db.get_value("Sales Taxes and Charges",
                                    {"parent": default_tax_template}, "rate") or 0
     return tax_rate
+
+
+def calculate_closing_balance(opening_debit, debit, opening_credit, credit):
+    total_debit = opening_debit + debit
+    total_credit = opening_credit + credit
+    if total_debit > total_credit:
+        closing_debit = abs(total_debit - total_credit)
+        closing_credit = 0
+    else:
+        closing_debit = 0
+        closing_credit = abs(total_debit - total_credit)
+
+    return closing_debit, closing_credit
 
 
 def get_columns():
@@ -552,3 +581,33 @@ def get_columns():
             "width": 150
         }
     ]
+
+
+def append_totals_row(data):
+    if not data:
+        return data
+    data = list(data)
+    totals = {
+        "title": frappe.bold("Totals"),
+        "opening_debit": 0,
+        "opening_credit": 0,
+        "debit": 0,
+        "credit": 0,
+        "closing_debit": 0,
+        "closing_credit": 0
+    }
+
+    for row in data:
+        if not row.get("is_parent"):
+            totals.update({
+                "opening_debit": totals["opening_debit"] + row["opening_debit"],
+                "opening_credit": totals["opening_credit"] + row["opening_credit"],
+                "debit": totals["debit"] + row["debit"],
+                "credit": totals["credit"] + row["credit"],
+                "closing_debit": totals["closing_debit"] + row["closing_debit"],
+                "closing_credit": totals["closing_credit"] + row["closing_credit"],
+            })
+
+    data.append(totals)
+
+    return data
