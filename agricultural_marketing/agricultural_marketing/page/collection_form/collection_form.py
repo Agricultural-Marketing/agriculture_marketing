@@ -3,7 +3,7 @@ import os
 import random
 
 import frappe
-from frappe import _
+from frappe import _, cint
 from frappe.utils import getdate, flt
 from frappe.utils.jinja_globals import is_rtl
 from frappe.utils.pdf import get_pdf as _get_pdf
@@ -32,6 +32,7 @@ def execute(filters):
         company_defaults["image"] = frappe.db.get_value("File", {"attached_to_name": company_defaults['name']},
                                                         "file_url")
     html_format = get_html_format(filters.get("new_layout"))
+    font_size = frappe.db.get_single_value("Agriculture Settings", "font_size") or 14
 
     context = {
         "letter_head": letter_head,
@@ -39,7 +40,8 @@ def execute(filters):
         "data": data,
         "filters": filters,
         "lang": frappe.local.lang,
-        "layout_direction": "rtl" if is_rtl() else "ltr"
+        "layout_direction": "rtl" if is_rtl() else "ltr",
+        "font_size": font_size
     }
 
     html = frappe.render_template(html_format, context)
@@ -156,7 +158,7 @@ def get_party_summary(filters, party_type, data):
             "doctype": doctype,
             "reference_id": reference_id,
             "date": date,
-            "qty": qty,
+            "qty": cint(qty) if hide_decimal else qty,
             "price": price,
             "statement": statement,
             "debit": flt(debit, 2) or str(debit),
@@ -164,9 +166,12 @@ def get_party_summary(filters, party_type, data):
         })
 
     final_data = {}
+    hide_decimal = True if filters.get("hide_decimal") else False
     switch_columns = True if party_type == "Customer" else False
     from_date = filters.get('from_date')
     for party, party_data in data.items():
+        if filters.get("ignore_zero_transactions") and not party_data[0]:
+            continue
         debit, credit, last_balance = 0, 0, 0
         total_debit, total_credit = 0, 0
         gl_filters = {

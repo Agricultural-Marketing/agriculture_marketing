@@ -39,6 +39,8 @@ def get_reports(filters):
                                           party_data=value)
 
         header_details = get_header_data(filters.get("party_group"), key)
+        font_size = frappe.db.get_single_value("Agriculture Settings", "font_size") or 14
+
         context = {
             "letter_head": letter_head,
             "header": header_details,
@@ -47,7 +49,8 @@ def get_reports(filters):
             "payments": value.get("payments"),
             "filters": filters,
             "lang": frappe.local.lang,
-            "layout_direction": "rtl" if is_rtl() else "ltr"
+            "layout_direction": "rtl" if is_rtl() else "ltr",
+            "font_size": font_size
         }
 
         html = frappe.render_template(html_format, context)

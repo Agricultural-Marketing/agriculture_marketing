@@ -5,7 +5,7 @@ from frappe import _
 from frappe.model.document import Document
 from erpnext.accounts.general_ledger import validate_accounting_period, make_entry
 from erpnext.accounts.party import get_party_account
-from frappe.utils import now
+from frappe.utils import now, flt
 import copy
 
 from settings_manager.utils.data import money_in_words
@@ -348,9 +348,9 @@ def build_pdf_template_context(filters):
         total_commission = (res[0].grand_total * total_commission_percentage) / 100 or 0
         total_taxes = (total_commission * total_taxes_rate) / 100 or 0
         res[0].update({
-            "total_commission": total_commission,
-            "total_taxes": total_taxes,
-            "net_total": res[0].grand_total - res[0].total_commissions_and_taxes,
+            "total_commission": flt(total_commission, 2),
+            "total_taxes": flt(total_taxes, 2),
+            "net_total": flt(res[0].grand_total - res[0].total_commissions_and_taxes, 2),
             "net_total_in_words": money_in_words((res[0].grand_total - res[0].total_commissions_and_taxes))
 
         })
@@ -367,7 +367,7 @@ def build_pdf_template_context(filters):
                 invformitem.item_name, invformitem.qty, invformitem.price, invformitem.total).run(
                 as_dict=True)
             res[0].update({
-                "net_total": sum([row["total"] for row in res]) or 0,
+                "net_total": flt(sum([row["total"] for row in res]), 2) or 0,
                 "net_total_in_words": money_in_words(sum([row["total"] for row in res]) or 0)
             })
         else:
@@ -379,7 +379,7 @@ def build_pdf_template_context(filters):
                 invformitem.item_name, invformitem.qty, invformitem.price, invformitem.total).run(
                 as_dict=True)
             res[0].update({
-                "net_total": sum([row["total"] for row in res]) or 0,
+                "net_total": flt(sum([row["total"] for row in res]), 2) or 0,
                 "net_total_in_words": money_in_words(sum([row["total"] for row in res]) or 0)
             })
 
