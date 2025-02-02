@@ -2,7 +2,7 @@ import json
 import os
 import random
 import frappe
-from frappe import _
+from frappe import _, cint
 from frappe.utils import getdate, flt
 from frappe.utils.jinja_globals import is_rtl
 from frappe.utils.pdf import get_pdf as _get_pdf
@@ -158,7 +158,7 @@ def get_party_summary(filters, party_type, party, party_data):
         party_summary.append({
             "reference": reference_id,
             "date": posting_date,
-            "statement": statement,
+            "statement": statement if statement else None,
             "debit": flt(debit, 2) or str(debit),
             "credit": flt(credit, 2) or str(credit)
         })
@@ -200,7 +200,8 @@ def get_party_summary(filters, party_type, party, party_data):
         total_items = get_draft_total_items(filters, party) or 0
         total_payments = get_draft_total_payments(filters, party) or 0
         if filters.get("party_type") == "Supplier":
-            debit += total_payments
+            total_draft_commission = get_draft_total_commission(filters, party) or 0
+            debit += total_payments + total_draft_commission
             credit += total_items
         else:
             debit += total_items
@@ -225,10 +226,10 @@ def get_party_summary(filters, party_type, party, party_data):
 
     for row in party_data.get("items", []):
         append_summary(row.get("invoice_id"), row.get("date"),
-                       f"{row.get('qty')} * {row.get('price')} {row.get('item_name')}", 0, row.get("total"))
+                       f"{cint(row.get('qty'))} * {flt(row.get('price'), 2)} {row.get('item_name')}", 0, flt(row.get("total"), 2))
 
     for row in party_data.get("payments", []):
-        append_summary(row.get("payment_id"), row.get("date"), row.get("remarks"), row.get("paid_amount"), 0)
+        append_summary(row.get("payment_id"), row.get("date"), row.get("remarks"), flt(row.get("paid_amount"), 2), 0)
 
     party_summary = sorted(party_summary, key=lambda item: item.get("date", getdate("1000-01-01")))
     # Calculate totals
@@ -239,8 +240,8 @@ def get_party_summary(filters, party_type, party, party_data):
     if filters.get("party_type") == "Supplier":
         total_commission = sum(it.get("commission", 0) for it in party_data.get("items", []))
         total_taxes = (total_commission * get_tax_rate()) / 100 or 0
-        append_summary("", "", _("Commissions"), total_commission, 0)
-        append_summary("", "", _("Taxes"), total_taxes, 0)
+        append_summary("", "", _("Commissions"), flt(total_commission, 2), 0)
+        append_summary("", "", _("Taxes"), flt(total_taxes, 2), 0)
         total_debit = total_commission + total_payments + total_taxes
         total_credit = total_sales
     else:
@@ -500,3 +501,16 @@ def get_opening_from_sales_invoice_for_customer(filters, party, debit):
     debit += sum([re["total"] for re in sinv_result if re["total"]]) or 0
 
     return debit
+
+
+def get_draft_total_commission(filters, party):
+    invform = frappe.qb.DocType("Invoice Form")
+    result = frappe.qb.from_(invform).where(invform.company == filters.get('company')).where(
+        invform.supplier == party).where(invform.docstatus == 0).where(
+        invform.posting_date.lt(filters.get("from_date"))).select(
+        Sum(invform.total_commissions_and_taxes).as_("commission")).run(
+        as_dict=True)
+
+    total_commission = sum([re["commission"] for re in result if re["commission"]]) or 0
+
+    return total_commission
