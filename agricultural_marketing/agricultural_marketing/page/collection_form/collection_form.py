@@ -31,7 +31,7 @@ def execute(filters):
         company_defaults["address"] = get_company_address(company_defaults['name']).get("company_address_display")
         company_defaults["image"] = frappe.db.get_value("File", {"attached_to_name": company_defaults['name']},
                                                         "file_url")
-    html_format = get_html_format()
+    html_format = get_html_format(filters.get("new_layout"))
 
     context = {
         "letter_head": letter_head,
@@ -43,6 +43,8 @@ def execute(filters):
     }
 
     html = frappe.render_template(html_format, context)
+    if filters.get("open_pdf"):
+        return {"html": html}
     content = _get_pdf(html, {"orientation": "Portrait"})
     file_name = "{0}-{1}.pdf".format("collection-form", str(random.randint(1000, 9999)))
     file_doc = frappe.new_doc("File")
@@ -52,10 +54,9 @@ def execute(filters):
         "content": content
     })
     file_doc.save(ignore_permissions=True)
-    file_urls.append(file_doc.file_url)
 
     return {
-        "file_urls": file_urls
+        "file_url": file_doc.file_url
     }
 
 
@@ -67,8 +68,11 @@ def get_data(data, filters):
     return data
 
 
-def get_html_format():
-    template_filename = os.path.join("collection_form" + '.html')
+def get_html_format(new_layout=False):
+    if new_layout:
+        template_filename = os.path.join("collection_form_new" + '.html')
+    else:
+        template_filename = os.path.join("collection_form" + '.html')
     folder = os.path.dirname(frappe.get_module("agricultural_marketing" + "." + "agricultural_marketing" +
                                                "." + "page").__file__)
     doctype_path = os.path.join(folder, "collection_form")
@@ -192,6 +196,10 @@ def get_party_summary(filters, party_type, data):
             debit += gl.debit
             credit += gl.credit
 
+        # GET totals for customers (Opening Balance)
+        if filters.get("party_type") == "Customer":
+            debit = get_opening_from_sales_invoice_for_customer(filters, party, debit)
+
         # GET total items and payments before from date
         if filters.get("consider_draft"):
             total_items = get_draft_total_items(filters, party) or 0
@@ -225,13 +233,23 @@ def get_party_summary(filters, party_type, data):
         for d in party_data:
             if d.get("doctype") == "Invoice Form":
                 commission_with_taxes = 0
-                if filters.get("party_type") == "Supplier" and d.commission:
+                if d.commission:
                     total_taxes = (d.commission * get_tax_rate()) / 100
                     commission_with_taxes = d.commission + total_taxes
-                append_summary(d.doctype, d.reference_id, d.date, d.qty, d.price, d.item_name, commission_with_taxes,
-                               d.total)
-                total_credit += d.total
-                total_debit += commission_with_taxes
+                if filters.get("party_type") == "Supplier":
+                    append_summary(d.doctype, d.reference_id, d.date, d.qty, d.price, d.item_name,
+                                   (commission_with_taxes + d.total), 0)
+                else:
+                    append_summary(d.doctype, d.reference_id, d.date, d.qty, d.price, d.item_name,
+                                   0, (commission_with_taxes + d.total))
+
+                if filters.get("party_type") == "Supplier":
+                    total_credit += d.total
+                    total_debit += commission_with_taxes
+                else:
+                    total_credit += (d.total + commission_with_taxes)
+                    total_debit += 0
+
             elif d.get("doctype") == "Payment Entry":
                 statement = f"{_(d.mop)} - {d.remarks}" if d.remarks else f"{_(d.mop)}"
                 if d.payment_type == "Receive":
@@ -259,7 +277,6 @@ def get_party_summary(filters, party_type, data):
             "debit": f"<b> {flt(total_debit, 2) or '0'} </b>",
             "credit": f"<b> {flt(total_credit, 2) or '0'} </b>"
         })
-
     return final_data
 
 
@@ -297,6 +314,8 @@ def select_fields_for_invoices(filters, items_query, _field, invform, invformite
 
     if filters.get("party_type") == "Supplier":
         items_query = items_query.select(invformitem.commission)
+    else:
+        items_query = items_query.select(invformitem.customer_commission.as_("commission"))
 
     return items_query
 
@@ -415,3 +434,28 @@ def get_draft_total_payments(filters, party):
     total_paid_amount = sum([re["paid_amount"] for re in result if re["paid_amount"]]) or 0
 
     return total_paid_amount
+
+
+def get_opening_from_sales_invoice_for_customer(filters, party, debit):
+    # Get total commission from submitted invoice form which have no commission invoices before the selected date
+    invform = frappe.qb.DocType("Invoice Form")
+    invformitem = frappe.qb.DocType("Invoice Form Item")
+    result = frappe.qb.from_(invform).left_join(invformitem).on(invformitem.parent == invform.name).where(
+        invform.company == filters.get('company')).where(invformitem.customer == party).where(
+        invform.docstatus == 1).where(invform.posting_date.lt(filters.get("from_date"))).where(
+        invformitem.has_commission_invoice == 0).select(Sum(invformitem.customer_commission).as_("total")).run(
+        as_dict=True)
+
+    total_commission = sum([re["total"] for re in result if re["total"]]) or 0
+    total_taxes = (total_commission * get_tax_rate()) / 100
+
+    debit += total_commission + total_taxes
+
+    # Get totals from sales invoice before the selected date
+    sinv = frappe.qb.DocType("Sales Invoice")
+    sinv_result = frappe.qb.from_(sinv).where(sinv.company == filters.get("company")).where(
+        sinv.customer == party).where(sinv.is_commission_invoice == 1).where(sinv.docstatus == 0).where(
+        sinv.posting_date.lt(filters.get("from_date"))).select(sinv.grand_total.as_("total")).run(as_dict=True)
+    debit += sum([re["total"] for re in sinv_result if re["total"]]) or 0
+
+    return debit

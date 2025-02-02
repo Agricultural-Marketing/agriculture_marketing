@@ -3,7 +3,14 @@
 
 frappe.ui.form.on("Agriculture Settings", {
     refresh(frm) {
-        frm.set_query("commission_item", function () {
+        frm.set_query("supplier_commission_item", function () {
+            return {
+                filters: {
+                    commission_item: 1,
+                },
+            };
+        });
+        frm.set_query("customer_commission_item", function () {
             return {
                 filters: {
                     commission_item: 1,

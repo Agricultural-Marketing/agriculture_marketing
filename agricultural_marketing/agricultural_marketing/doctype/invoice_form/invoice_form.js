@@ -28,6 +28,7 @@ frappe.ui.form.on("Invoice Form", {
                                 dialog.set_df_property("party", "options", partyTypeField.value);
                                 if (partyTypeField.value == "Supplier") {
     					            dialog.set_df_property("party", "hidden", 0);
+    					            dialog.fields_dict["party"].value = frm.doc.supplier;
                                     dialog.set_df_property("customer_type", "hidden", 1);
                                     dialog.set_df_property("customer_type", "reqd", 0);
                                     dialog.set_df_property("party", "get_query", get_query(frm, partyTypeField.value, ""));
@@ -37,7 +38,6 @@ frappe.ui.form.on("Invoice Form", {
                                     dialog.set_df_property("customer_type", "reqd", 1);
                                 }
     					    } else {
-    					        dialog.fields_dict["party"].value = "";
     					        dialog.set_df_property("party", "hidden", 1);
     					        dialog.fields_dict["customer_type"].value = "";
                                 dialog.set_df_property("customer_type", "hidden", 1);
@@ -206,8 +206,8 @@ function calculate_total_line(frm) {
 
 function calculate_total_commission_line(frm) {
     let row = frm.selected_doc;
-    row.taxes = (row.taxes) ? row.taxes: 0;
-    row.commission = (row.commission) ? row.commission: 0;
+    row.taxes = (row.taxes) ? row.taxes: null;
+    row.commission = (row.commission) ? row.commission: null;
     row.commission_total = row.commission + row.taxes;
     frm.refresh_field('commissions');
 }

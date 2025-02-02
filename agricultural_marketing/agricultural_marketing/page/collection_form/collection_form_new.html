@@ -82,8 +82,6 @@
         <th style="width: 13%"> {{ _("Date") }}</th>
         <th style="width: 8%"> {{ _("Debit") }}</th>
         <th style="width: 8%"> {{ _("Credit") }}</th>
-        <th style="width: 8%%"> {{ _("Price") }}</th>
-        <th style="width: 8%%"> {{ _("Quantity") }}</th>
         <th style="width: 20%"> {{ _("Statement") }}</th>
     </tr>
     </thead>
@@ -96,9 +94,7 @@
         <td> {% if item.debit %} {{ item.debit }} {% endif %}</td>
         <td> {% if item.credit %} {{ item.credit }} {% endif %}</td>
         {% if item.doctype == "Invoice Form" %}
-        <td> {{ item.price }}</td>
-        <td> {{ item.qty }}</td>
-        <td> {{ item.statement }}</td>
+        <td colspan="3"> {{ item.price }} * {{ item.qty }} {{ item.statement }}</td>
         {% else %}
         <td colspan="3"> {{ item.statement }}</td>
         {% endif %}

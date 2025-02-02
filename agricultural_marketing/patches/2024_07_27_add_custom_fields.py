@@ -24,6 +24,21 @@ def execute():
                 "fieldname": "commission_percentage",
                 "fieldtype": "Percent",
                 "insert_after": "is_transporter"
+            },
+            {
+                "label": _("Apply Commission"),
+                "fieldname": "apply_commission",
+                "fieldtype": "Check",
+                "default": "1",
+                "insert_after": "commission_percentage"
+            }
+        ],
+        "Supplier Group": [
+            {
+                "label": _("Commission Percentage"),
+                "fieldname": "commission_percentage",
+                "fieldtype": "Percent",
+                "insert_after": "is_group"
             }
         ],
         "Customer": [
@@ -52,18 +67,25 @@ def execute():
                 "depends_on": "eval:doc.is_farmer!=1"
             },
             {
-                "label": _("Commission Percentage"),
-                "fieldname": "commission_percentage",
-                "fieldtype": "Percent",
+                "label": _("Commission Type"),
+                "fieldname": "commission_type",
+                "fieldtype": "Select",
                 "insert_after": "account_manager",
-                "depends_on": "eval:doc.is_farmer==1"
+                "options": "Amount\nPercent",
+                "default": "Percent"
+            },
+            {
+                "label": _("Commission"),
+                "fieldname": "commission",
+                "fieldtype": "Float",
+                "insert_after": "commission_type"
             }
         ],
         "Customer Group": [
             {
-                "label": _("Commission Percentage"),
-                "fieldname": "commission_percentage",
-                "fieldtype": "Percent",
+                "label": _("Commission"),
+                "fieldname": "commission",
+                "fieldtype": "Float",
                 "insert_after": "is_group"
             }
         ],
@@ -75,6 +97,24 @@ def execute():
                 "default": 0,
                 "allow_in_quick_entry": 1,
                 "insert_after": "stock_uom"
+            }
+        ],
+        "Sales Invoice": [
+            {
+                "label": _("Is Commission Invoice"),
+                "fieldname": "is_commission_invoice",
+                "fieldtype": "Check",
+                "default": 0,
+                "insert_after": "campaign"
+            }
+        ],
+        "Sales Invoice Item": [
+            {
+                "label": _("Invoice Form"),
+                "fieldname": "invoice_form",
+                "fieldtype": "Link",
+                "options": "Invoice Form",
+                "insert_after": "brand"
             }
         ]
     })

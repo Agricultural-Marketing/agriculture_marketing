@@ -8,6 +8,8 @@ to a section with the version name.
 
 ## Unreleased Changes
 
+* New layout for collection form reports.
+
 # 1.3.0
 
 * Consider draft totals in opening balances (Reports).

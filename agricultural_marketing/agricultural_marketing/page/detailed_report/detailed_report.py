@@ -70,16 +70,6 @@ def get_data(data, filters):
     return data
 
 
-def get_html_format():
-    template_filename = os.path.join("statement_forms" + '.html')
-    folder = os.path.dirname(frappe.get_module("agricultural_marketing" + "." + "agricultural_marketing" +
-                                               "." + "page").__file__)
-    doctype_path = os.path.join(folder, "statement_forms")
-    paths_temp = os.path.join(doctype_path, template_filename)
-    html_format = frappe.utils.get_html_format(paths_temp)
-    return html_format
-
-
 def get_items_details(data, filters):
     invform = frappe.qb.DocType("Invoice Form")
     invformitem = frappe.qb.DocType("Invoice Form Item")
@@ -144,56 +134,36 @@ def get_payments_details(data, filters):
     return data
 
 
-def get_tax_rate():
-    default_tax_template = frappe.db.get_single_value("Agriculture Settings", "default_tax")
-
-    if not default_tax_template:
-        default_tax_template = frappe.db.get_value("Sales Taxes and Charges",
-                                                   {"is_default": 1}, "name")
-
-    tax_rate = frappe.db.get_value("Sales Taxes and Charges",
-                                   {"parent": default_tax_template}, "rate") or 0
-    return tax_rate
-
-
-def get_header_data(party_group, party):
-    return {
-        "party": party,
-        "party_group": party_group
-    }
-
-
 def get_party_summary(filters, party_type, party, party_data):
     def update_balance(balance, debit, credit):
         """Helper function to calculate and update the balance."""
         return balance + flt(debit) - flt(credit)
 
-    def get_total_sales_and_commissions(data):
+    def get_total_sales(data):
         if data.get("items"):
-            return data["items"][-1].get("total", 0), data["items"][-1].get("commission", 0)
-        return 0, 0
+            return sum(it.get("total", 0) for it in data["items"])
+        return 0
 
     def get_total_payments(data):
         if data.get("payments"):
-            return data.get("payments")[-1].get('paid_amount', 0)
+            return sum(it.get("paid_amount", 0) for it in data["payments"])
         return 0
 
-    def append_summary(statement, debit, credit):
-        nonlocal last_balance
+    def append_summary(reference_id, posting_date, statement, debit, credit):
         if switch_columns:
             debit, credit = credit, debit
 
-        last_balance = update_balance(last_balance, debit, credit)
         party_summary.append({
+            "reference": reference_id,
+            "date": posting_date,
             "statement": statement,
             "debit": flt(debit, 2) or str(debit),
-            "credit": flt(credit, 2) or str(credit),
-            "balance": flt(last_balance, 2) or str(last_balance)
+            "credit": flt(credit, 2) or str(credit)
         })
 
     switch_columns = True if party_type == "Customer" else False
     party_summary = []
-    debit, credit, last_balance = 0, 0, 0
+    debit, credit, last_balance, balance_from, balance_to = 0, 0, 0, 0, 0
     from_date = filters.get('from_date')
 
     gl_filters = {
@@ -232,48 +202,52 @@ def get_party_summary(filters, party_type, party, party_data):
         total_items = get_draft_total_items(filters, party) or 0
         total_payments = get_draft_total_payments(filters, party) or 0
         if filters.get("party_type") == "Supplier":
-            total_draft_commission = get_draft_total_commission(filters, party) or 0
-            debit += total_payments + total_draft_commission
+            debit += total_payments
             credit += total_items
         else:
             debit += total_items
             credit += total_payments
 
-    # Calculate totals
-    total_sales, total_commission_with_taxes = get_total_sales_and_commissions(party_data)
-    total_payments = get_total_payments(party_data)
     last_balance = debit - credit
-    if not filters.get("calculate_opening_balance_with_totals", False):
-        if abs(debit) > abs(credit):
-            debit = abs(last_balance)
-            credit = 0
-        else:
-            credit = abs(last_balance)
-            debit = 0
-
     # Append Opening
+    if abs(debit) > abs(credit):
+        balance_from = debit = abs(last_balance)
+        balance_to = credit = 0
+    else:
+        balance_from = debit = 0
+        balance_to = credit = abs(last_balance)
+
     party_summary.append({
-        "statement": _("Opening Balance"),
         "debit": flt(debit, 2) or "0",
         "credit": flt(credit, 2) or "0",
-        "balance": flt(last_balance, 2) or "0"
+        "balance_from": flt(balance_from, 2) or "0",
+        "balance_to": flt(balance_to, 2) or "0",
+        "statement": _("Opening Balance"),
     })
 
-    # Append Summaries
-    append_summary(_("Duration Selling"), 0, flt(total_sales, 2))
-    if filters.get("party_type") == "Supplier":
-        append_summary(_("Commission") + " + " + _("VAT"), flt(total_commission_with_taxes, 2), 0)
-    else:
-        append_summary(_("Commission") + " + " + _("VAT"), 0, flt(total_commission_with_taxes, 2))
-    append_summary(_("Duration Payments"), flt(total_payments, 2), 0)
+    for row in party_data.get("items", []):
+        append_summary(row.get("invoice_id"), row.get("date"),
+                       f"{row.get('qty')} * {row.get('price')} {row.get('item_name')}", 0, row.get("total"))
+
+    for row in party_data.get("payments", []):
+        append_summary(row.get("payment_id"), row.get("date"), row.get("remarks"), row.get("paid_amount"), 0)
+
+    party_summary = sorted(party_summary, key=lambda item: item.get("date", getdate("1000-01-01")))
+    # Calculate totals
+    total_sales = get_total_sales(party_data)
+    total_payments = get_total_payments(party_data)
 
     # Calculate and append closing
     if filters.get("party_type") == "Supplier":
-        total_debit = total_commission_with_taxes + total_payments
+        total_commission = sum(it.get("commission", 0) for it in party_data.get("items", []))
+        total_taxes = (total_commission * get_tax_rate()) / 100 or 0
+        append_summary("", "", _("Commissions"), total_commission, 0)
+        append_summary("", "", _("Taxes"), total_taxes, 0)
+        total_debit = total_commission + total_payments + total_taxes
         total_credit = total_sales
     else:
         total_debit = total_payments
-        total_credit = total_sales + total_commission_with_taxes
+        total_credit = total_sales
 
     if switch_columns:
         total_debit, total_credit = total_credit, total_debit
@@ -281,14 +255,65 @@ def get_party_summary(filters, party_type, party, party_data):
     total_debit += debit
     total_credit += credit
 
+    for row in party_summary[1:]:
+        last_balance = update_balance(last_balance, row.get("debit"), row.get("credit"))
+        if last_balance > 0:
+            balance_from = last_balance
+            balance_to = 0
+        else:
+            balance_from = 0
+            balance_to = last_balance
+
+        row.update({
+            "balance_from": abs(flt(balance_from, 2)) or str(balance_from),
+            "balance_to": abs(flt(balance_to, 2)) or str(balance_to),
+        })
+
+    if abs(total_debit) > abs(total_credit):
+        balance_from = abs(total_debit) - abs(total_credit)
+        balance_to = 0
+    else:
+        balance_to = abs(total_credit) - abs(total_debit)
+        balance_from = 0
+
     party_summary.append({
         "statement": _("Total"),
         "debit": flt(total_debit, 2) or "0",
         "credit": flt(total_credit, 2) or "0",
-        "balance": flt(total_debit - total_credit, 2) or "0"
+        "balance_from": abs(flt(balance_from, 2)) or "0",
+        "balance_to": abs(flt(balance_to, 2)) or "0",
     })
 
     return party_summary
+
+
+def get_html_format():
+    template_filename = os.path.join("detailed_report" + '.html')
+    folder = os.path.dirname(frappe.get_module("agricultural_marketing" + "." + "agricultural_marketing" +
+                                               "." + "page").__file__)
+    doctype_path = os.path.join(folder, "detailed_report")
+    paths_temp = os.path.join(doctype_path, template_filename)
+    html_format = frappe.utils.get_html_format(paths_temp)
+    return html_format
+
+
+def get_tax_rate():
+    default_tax_template = frappe.db.get_single_value("Agriculture Settings", "default_tax")
+
+    if not default_tax_template:
+        default_tax_template = frappe.db.get_value("Sales Taxes and Charges",
+                                                   {"is_default": 1}, "name")
+
+    tax_rate = frappe.db.get_value("Sales Taxes and Charges",
+                                   {"parent": default_tax_template}, "rate") or 0
+    return tax_rate
+
+
+def get_header_data(party_group, party):
+    return {
+        "party": party,
+        "party_group": party_group
+    }
 
 
 def get_parties(filters, _filters):
@@ -360,20 +385,6 @@ def process_result_and_totals_for_invoices(result, data, filters):
             data.setdefault(party, {}).setdefault("items", []).append(row)
             invoices.add(row["invoice_id"])
 
-    for party_data in data.values():
-        items = party_data.get("items", [])
-        if items:
-            total_qty, total_before_tax, total_commission, total_taxes, total_commission_with_taxes = calculate_totals(
-                items)
-
-            # Append totals
-            items.append({
-                "date": _("Total"),
-                "qty": "",
-                "total": total_before_tax,
-                "commission": total_commission_with_taxes
-            })
-
 
 def select_fields_for_payment(filters, payments_query, entry):
     payments_query = payments_query.select(entry.party_type, entry.party, entry.name.as_("payment_id"),
@@ -417,12 +428,6 @@ def process_result_and_totals_for_payments(result, data):
         if party:
             append_to_date(party, row)
 
-    # Calculate and append grand total for each party
-    for party_data in data.values():
-        payments = party_data.get("payments", [])
-        if payments:
-            calculate_grand_total(payments)
-
 
 def get_draft_total_items(filters, party):
     invform = frappe.qb.DocType("Invoice Form")
@@ -442,19 +447,6 @@ def get_draft_total_items(filters, party):
     total_items = sum([re["total"] for re in result if re["total"]]) or 0
 
     return total_items
-
-
-def get_draft_total_commission(filters, party):
-    invform = frappe.qb.DocType("Invoice Form")
-    result = frappe.qb.from_(invform).where(invform.company == filters.get('company')).where(
-        invform.supplier == party).where(invform.docstatus == 0).where(
-        invform.posting_date.lt(filters.get("from_date"))).select(
-        Sum(invform.total_commissions_and_taxes).as_("commission")).run(
-        as_dict=True)
-
-    total_commission = sum([re["commission"] for re in result if re["commission"]]) or 0
-
-    return total_commission
 
 
 def get_draft_total_payments(filters, party):

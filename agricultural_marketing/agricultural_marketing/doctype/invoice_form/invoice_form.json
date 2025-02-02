@@ -27,7 +27,8 @@
   "items",
   "commissions_section",
   "commissions",
-  "commission_invoice_reference",
+  "section_break_fkjw",
+  "has_supplier_commission_invoice",
   "pampers_commissions_section",
   "pamper_commissions",
   "section_break_cwcc",
@@ -191,24 +192,28 @@
    "options": "Company"
   },
   {
-   "fieldname": "commission_invoice_reference",
-   "fieldtype": "Link",
-   "label": "Commission Invoice Reference",
-   "options": "Sales Invoice",
-   "read_only": 1
-  },
-  {
    "fieldname": "total_commissions_and_taxes",
    "fieldtype": "Currency",
    "label": "Total Commissions and Taxes",
    "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_fkjw",
+   "fieldtype": "Section Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "has_supplier_commission_invoice",
+   "fieldtype": "Check",
+   "label": "Has Supplier Commission Invoice",
    "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2024-08-18 00:02:57.113947",
+ "modified": "2024-12-15 18:10:52.823709",
  "modified_by": "Administrator",
  "module": "Agricultural Marketing",
  "name": "Invoice Form",
