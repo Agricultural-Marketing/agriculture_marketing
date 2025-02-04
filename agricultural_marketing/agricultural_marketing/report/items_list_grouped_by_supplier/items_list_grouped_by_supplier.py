@@ -41,8 +41,9 @@ def execute(filters=None):
                               invformitem.item_name.as_("item_name"),
                               Sum(invformitem.commission).as_("total_commission"),
                               Sum(invformitem.qty).as_("total_qty"),
-                              Avg(invformitem.price).as_("price"),
-                              (Sum(invformitem.qty) * Avg(invformitem.price)).as_("total")
+                              (Sum(invformitem.price * invformitem.qty) / Sum(invformitem.qty)).as_("price"),
+                              ((Sum(invformitem.price * invformitem.qty) / Sum(invformitem.qty)) * Sum(
+                                  invformitem.qty)).as_("total")
                               ).groupby(invformitem.item_name).run(as_dict=True)
 
     if data:
