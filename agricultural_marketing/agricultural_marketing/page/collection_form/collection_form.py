@@ -170,8 +170,6 @@ def get_party_summary(filters, party_type, data):
     switch_columns = True if party_type == "Customer" else False
     from_date = filters.get('from_date')
     for party, party_data in data.items():
-        if filters.get("ignore_zero_transactions") and not party_data[0]:
-            continue
         debit, credit, last_balance = 0, 0, 0
         total_debit, total_credit = 0, 0
         gl_filters = {
@@ -268,6 +266,8 @@ def get_party_summary(filters, party_type, data):
             "debit": f"<b> {flt(total_debit, 2) or '0'} </b>",
             "credit": f"<b> {flt(total_credit, 2) or '0'} </b>"
         })
+        if filters.get("ignore_zero_transactions") and (total_debit - total_credit) == 0:
+            del final_data[party]
 
     return final_data
 
