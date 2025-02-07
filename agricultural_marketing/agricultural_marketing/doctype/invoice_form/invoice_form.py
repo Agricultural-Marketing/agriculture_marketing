@@ -8,7 +8,8 @@ from erpnext.accounts.party import get_party_account
 from frappe.utils import now, flt
 import copy
 
-from settings_manager.utils.data import money_in_words
+if "settings_manager" in frappe.get_installed_apps():
+    from settings_manager.utils.data import money_in_words
 
 
 class InvoiceForm(Document):

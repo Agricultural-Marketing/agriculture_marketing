@@ -1,9 +1,6 @@
 import json
 import os
 import random
-
-from IPython.terminal.shortcuts.auto_match import braces
-
 import frappe
 from frappe import _
 from frappe.utils import getdate, flt

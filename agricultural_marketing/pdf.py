@@ -5,11 +5,12 @@ import frappe
 from frappe import _
 from frappe.utils.jinja_globals import is_rtl
 from frappe.utils.pdf import get_pdf as _get_pdf
-from agricultural_marketing.agricultural_marketing.doctype.invoice_form.invoice_form import build_pdf_template_context
 
 
 @frappe.whitelist()
 def get_pdf(filters, template, doctype, orientation="Portrait"):
+    from agricultural_marketing.agricultural_marketing.doctype.invoice_form.invoice_form import (
+        build_pdf_template_context)
     # FIXME: There is an issue in generated pdf filename
     # FIXME: Handle this method to be standalone can be used for any template not only invoice form
     if isinstance(filters, str):

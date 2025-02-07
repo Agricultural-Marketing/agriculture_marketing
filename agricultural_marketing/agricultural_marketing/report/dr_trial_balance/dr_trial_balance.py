@@ -4,7 +4,6 @@
 import frappe
 from frappe import _
 from frappe.query_builder.functions import Sum
-from pypika import Case
 
 
 def execute(filters=None):
